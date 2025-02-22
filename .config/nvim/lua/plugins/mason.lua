@@ -12,6 +12,7 @@ return {
       require("mason-lspconfig").setup({
         ensure_installed = {
           "pyright",
+          "ruff",
           "ts_ls",
           "eslint",
           "html",
@@ -70,14 +71,53 @@ return {
         filetype = { 'python' },
         capabilities = require("cmp_nvim_lsp").default_capabilities(),
         settings = {
+          pyright = {
+            disableOrganizeImports = true,  -- Use Ruff for this
+          },
           python = {
             analysis = {
-              autoSearchPaths = true,
-              diagnosticMode = "workspace",
-              useLibraryCodeForTypes = true,
+              -- Ignore all files for analysis to exclusively use Ruff for linting
+              ignore = { '*' },
             },
           },
         },
+      })
+
+      -- Setup ruff
+      lspconfig.ruff.setup({
+        init_options = {
+          settings = {
+            run = "onSave",
+            logLevel = "debug",
+          }
+        }
+      })
+
+      -- This sucks and feels hacky + dangerous, because I can't undo the changes external formatting produces in nvim.
+      vim.api.nvim_create_autocmd("BufWritePost", {
+        pattern = "*.py",
+        callback = function()
+          local start_time = vim.loop.hrtime()
+          local filename = vim.fn.expand('%:p')  -- Get full path of current file
+         
+          -- May want to limit this to only I (isort rules) if this is too aggressive.
+          local check_cmd = string.format("ruff check --fix %s", filename)
+          local check_result = vim.fn.system(check_cmd)
+          -- local format_cmd = string.format("ruff check --fix --select I %s", filename)
+
+          local format_cmd = string.format("ruff format %s", filename)
+          local format_result = vim.fn.system(format_cmd)
+
+          if vim.v.shell_error == 0 then
+            vim.cmd('checktime')
+            
+            local end_time = vim.loop.hrtime()
+            local duration_ms = (end_time - start_time) / 1000000
+            vim.notify(string.format("Format operation took %.2fms", duration_ms))
+          else
+            vim.notify("Format failed: " .. result, vim.log.levels.ERROR)
+          end
+        end
       })
 
       -- Setup TypeScript

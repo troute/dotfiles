@@ -1,2 +1,0 @@
-refactor/rework/understand completion.lua
-figure out how to use nvim git diff viewer, and consider setting key bindings
