@@ -99,7 +99,7 @@ return {
         callback = function()
           local start_time = vim.loop.hrtime()
           local filename = vim.fn.expand('%:p')  -- Get full path of current file
-         
+
           -- May want to limit this to only I (isort rules) if this is too aggressive.
           local check_cmd = string.format("ruff check --fix %s", filename)
           local check_result = vim.fn.system(check_cmd)
@@ -110,7 +110,7 @@ return {
 
           if vim.v.shell_error == 0 then
             vim.cmd('checktime')
-            
+
             local end_time = vim.loop.hrtime()
             local duration_ms = (end_time - start_time) / 1000000
             vim.notify(string.format("Format operation took %.2fms", duration_ms))

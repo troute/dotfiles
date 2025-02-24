@@ -38,8 +38,6 @@ select = [
     "E",    # pycodestyle errors
     "F",    # pyflakes
     "I",    # isort
-    "UP",   # pyupgrade
-    "RUF",  # ruff-specific rules
 ]
 
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"

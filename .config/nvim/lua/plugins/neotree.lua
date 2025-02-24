@@ -19,6 +19,7 @@ return {
     })
   end,
   keys = {
-    { "<leader>t", ":Neotree toggle<CR>" },
+    { "<leader>t", ":Neotree toggle position=left<CR>" },
+    { "<leader>T", ":Neotree float<CR>" },
   },
 }
