@@ -1,7 +1,8 @@
 -- Space for leader
 vim.g.mapleader = " "
 
--- Relative line numbers
+-- Absolute (current line only) and relative (all other lines) line numbers
+vim.opt.number = true
 vim.opt.relativenumber = true
 
 -- Default tab spacing (should be overridden per file extension)
@@ -19,6 +20,7 @@ vim.opt.undofile = true
 -- Cursor column/line
 vim.opt.cursorcolumn = true
 vim.opt.cursorline = true
+vim.opt.termguicolors = true
 
 -- Line length indicators
 vim.opt.colorcolumn = "80,120"
