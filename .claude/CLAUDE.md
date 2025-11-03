@@ -66,32 +66,6 @@ specified requirements. Note which files, classes, and functions will be added, 
 For simple tasks, you can proceed directly to implementation, but ALWAYS note in your response that you are doing so
 precisely because you view the task as comparatively simple.
 
-### TODO_AI Comments
-
-It is important to me to be able to track which code is was recently edited using AI, as I like to manually review
-in detail all AI code changes in large, infrequent batches. To that end, please leave comments which indicate when
-you've modified individual classes, methods, functions, and files.
-
-For example, if you make a modification to the `add` function, you should add comments like the following, providing the
-current date:
-
-```python
-# TODO_AI: file modified by AI on 2025-04-04
-
-def subtract(a, b):
-    return a - b
-
-# TODO_AI: function modified by AI on 2025-04-04
-def add(a, b):
-    return a + b
-```
-
-ALWAYS put these in single-line comments, never in docstrings or other multi-line comment constructs. ALWAYS ensure
-that you are using the correct comment format for the file being modified (e.g. `//` for JS, `#` for Python).
-
-AVOID duplicating or stacking these comments; instead, update existing `TODO_AI` comments when you encounter them in
-files you are modifying.
-
 ## Language-Specific Guidelines
 
 ### Python
