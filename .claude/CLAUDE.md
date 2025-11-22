@@ -85,3 +85,14 @@ source .venv/bin/activate
 ```
 
 The virtual environment aliases `python`, so use `python` to invoke Python (rather than `python3`, for example).
+
+## Compacting Guidelines
+
+When compacting, always attempt to maintain a history of ALL user messages in the current session. It is important to me
+that you remember all the guidance I give you during a given session, as I often say things like "we may modify this later",
+and I want those thoughts to persist in a simple format (e.g. maintaining all my messages) throughout the session.
+
+## Language-Specific Style and Best Practices Guides
+
+@~/dev/readme/STYLE_PYTHON.md
+@~/dev/readme/STYLE_TYPESCRIPT.md
