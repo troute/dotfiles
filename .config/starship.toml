@@ -1,0 +1,45 @@
+# Starship Configuration
+# Minimal prompt with execution time, truncated paths, and Nerd Font icons
+
+# Overall prompt format
+format = """
+$directory$git_status$git_branch$cmd_duration
+$character"""
+
+# Directory display with truncation
+[directory]
+truncation_length = 4
+truncate_to_repo = true
+format = "[$path]($style) "
+style = "cyan"
+truncation_symbol = "... /"
+
+# Git branch
+[git_branch]
+format = "[$branch]($style) "
+style = "purple"
+
+# Git status indicators
+[git_status]
+format = "[on](white) [\\[$all_status\\]]($style) "
+style = "purple"
+conflicted = "!!"
+untracked = "?"
+stashed = "$"
+modified = "!"
+staged = "+"
+renamed = ">"
+deleted = "x"
+
+# Command execution time
+[cmd_duration]
+min_time = 0
+show_milliseconds = true
+format = "[$duration]($style)"
+style = "bold yellow"
+
+# Prompt character
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol =   "[❯](bold red)"
+vimcmd_symbol =  "[❯](bold yellow)"

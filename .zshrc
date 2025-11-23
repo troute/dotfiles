@@ -102,7 +102,6 @@ eval "$(direnv hook zsh)"
 eval "$(starship init zsh)"
 
 alias ll='eza -a --long --icons'
-compdef ll=eza
 
 # Vim mode
 bindkey -v
