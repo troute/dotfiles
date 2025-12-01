@@ -1,6 +1,13 @@
 -- Space for leader
 vim.g.mapleader = " "
 
+-- Custom filetypes
+vim.filetype.add({
+	pattern = {
+		[".*%.md%.jinja2"] = "markdown",
+	},
+})
+
 -- Absolute (current line only) and relative (all other lines) line numbers
 vim.opt.number = true
 vim.opt.relativenumber = true

@@ -30,9 +30,7 @@ return {
 	{
 		"neovim/nvim-lspconfig",
 		config = function()
-			-- LSP Configuration
-			local lspconfig = require("lspconfig")
-
+			-- Diagnostic signs
 			local signs = {
 				Error = "!!", -- x circle
 				Warn = " !", -- exclamation circle
@@ -46,18 +44,17 @@ return {
 
 			-- Configure diagnostics
 			vim.diagnostic.config({
-				-- Configure error message
 				virtual_text = {
 					spacing = 2,
 					prefix = "●",
-					format = function(diagnostic) -- custom formatting
+					format = function(diagnostic)
 						return string.format("[%s] %s", diagnostic.source, diagnostic.message)
 					end,
 				},
 				signs = true,
-				underline = true, -- Underline the text with an error
-				update_in_insert = false, -- Don't update diagnostics in insert mode
-				severity_sort = true, -- Sort diagnostics by severity
+				underline = true,
+				update_in_insert = false,
+				severity_sort = true,
 				float = {
 					border = "rounded",
 					source = "always",
@@ -66,10 +63,13 @@ return {
 				},
 			})
 
-			-- Setup pyright
-			lspconfig.pyright.setup({
-				filetype = { "python" },
+			-- Global LSP config (applies to all servers)
+			vim.lsp.config("*", {
 				capabilities = require("cmp_nvim_lsp").default_capabilities(),
+			})
+
+			-- Server-specific configs
+			vim.lsp.config("pyright", {
 				settings = {
 					pyright = {
 						disableOrganizeImports = true, -- Use Ruff for this
@@ -79,7 +79,6 @@ return {
 							typeCheckingMode = "basic",
 							useLibraryCodeForTypes = true,
 							diagnosticSeverityOverrides = {
-								-- Only enable type checking diagnostics, disable linting rules
 								reportGeneralTypeIssues = "warning",
 								reportOptionalMemberAccess = "warning",
 								reportOptionalSubscript = "warning",
@@ -91,14 +90,26 @@ return {
 				},
 			})
 
-			-- Setup ruff
-			lspconfig.ruff.setup({
+			vim.lsp.config("ruff", {
 				init_options = {
 					settings = {
 						run = "onSave",
 						logLevel = "debug",
 					},
 				},
+			})
+
+			-- Enable all servers (mason-lspconfig handles this via automatic_enable)
+			vim.lsp.enable({
+				"pyright",
+				"ruff",
+				"ts_ls",
+				"html",
+				"cssls",
+				"tailwindcss",
+				"eslint",
+				"jsonls",
+				"lua_ls",
 			})
 
 			-- This sucks and feels hacky + dangerous, because I can't undo the changes external formatting produces in nvim.
@@ -128,36 +139,6 @@ return {
 				end,
 			})
 
-			-- Setup TypeScript
-			lspconfig.ts_ls.setup({
-				capabilities = require("cmp_nvim_lsp").default_capabilities(),
-			})
-
-			-- Setup HTML
-			lspconfig.html.setup({
-				capabilities = require("cmp_nvim_lsp").default_capabilities(),
-			})
-
-			-- Setup CSS
-			lspconfig.cssls.setup({
-				capabilities = require("cmp_nvim_lsp").default_capabilities(),
-			})
-
-			-- Setup Tailwind CSS
-			lspconfig.tailwindcss.setup({
-				capabilities = require("cmp_nvim_lsp").default_capabilities(),
-			})
-
-			-- Setup ESLint
-			lspconfig.eslint.setup({
-				capabilities = require("cmp_nvim_lsp").default_capabilities(),
-			})
-
-			-- Setup JSON
-			lspconfig.jsonls.setup({
-				capabilities = require("cmp_nvim_lsp").default_capabilities(),
-			})
-
 			-- Global mappings
 			vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
 			vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
@@ -185,7 +166,7 @@ return {
 			"williamboman/mason.nvim",
 			"williamboman/mason-lspconfig.nvim",
 			"hrsh7th/nvim-cmp",
-			"hrsh7th/cmp-nvim-lsp", -- Add this dependency for better completion support
+			"hrsh7th/cmp-nvim-lsp",
 		},
 	},
 }

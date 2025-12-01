@@ -10,6 +10,8 @@ return {
 				"tsx",
 				"html",
 				"python",
+				"markdown",
+				"markdown_inline",
 			},
 			highlight = {
 				enable = true,

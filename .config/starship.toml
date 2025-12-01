@@ -21,7 +21,7 @@ style = "purple"
 
 # Git status indicators
 [git_status]
-format = "[on](white) [\\[$all_status\\]]($style) "
+format = "[on](white) ([\\[$all_status\\]]($style) )"
 style = "purple"
 conflicted = "!!"
 untracked = "?"
