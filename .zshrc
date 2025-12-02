@@ -98,14 +98,14 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
 [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
 
+# Vim mode (must be before starship init)
+bindkey -v
+bindkey '^R' history-incremental-search-backward
+
 eval "$(direnv hook zsh)"
 eval "$(starship init zsh)"
 
 alias ll='eza -a --long --icons'
-
-# Vim mode
-bindkey -v
-bindkey '^R' history-incremental-search-backward  # Vim mode seems to rebind C-r
 
 # Neovim for default editor
 export EDITOR=nvim
