@@ -19,15 +19,16 @@ compdef v=nvim
 alias dotfiles='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 compdef dotfiles=git
 
-# Claude Code usage (a little nasty, but whatevs)
-alias ccusage='(cd ~/dev/finform/frontend && npx ccusage)'
-
-# Dense ccusage display with sparklines
-ccusage-dense() {
+# Claude Code usage with sparklines
+ccusage() {
   (cd ~/dev/finform/frontend && npx ccusage daily --json | jq -r '
   .daily as $all_daily |
+  (now | strflocaltime("%Y-%m-%d")) as $today_date |
+  ($today_date | strptime("%Y-%m-%d") | mktime) as $today_ts |
   ($all_daily[0].date | strptime("%Y-%m-%d") | mktime) as $first_date |
-  ($all_daily[-1].date | strptime("%Y-%m-%d") | mktime) as $last_date |
+  ($all_daily[-1].date | strptime("%Y-%m-%d") | mktime) as $last_data_ts |
+  # Extend range to today if today is after last data date
+  ([($last_data_ts), ($today_ts)] | max) as $last_date |
   (($last_date - $first_date) / 86400 + 1 | floor) as $calendar_days |
   ($all_daily | map({key: .date, value: .totalCost}) | from_entries) as $costs |
   ([range($calendar_days | floor)] | map(($first_date + (. * 86400)) | strftime("%Y-%m-%d"))) as $all_dates |
@@ -63,7 +64,7 @@ ccusage-dense() {
 
   (($last30 | add) / $n) as $avg30 |
   (($last7 | add) / 7) as $avg7 |
-  ($costs[$all_dates[-1]] // 0) as $today |
+  ($costs[$today_date] // 0) as $today |
 
   # Get sparkline for averages
   (if $avg30 == 0 then 0 else (($avg30 / $max_cost * 7) | floor | if . > 7 then 7 else . end) end) as $bar30_idx |
@@ -84,11 +85,11 @@ ccusage-dense() {
 ')
 }
 
-# Watch version of dense ccusage display
-watch-ccusage-dense() {
+# Watch version of ccusage
+watch-ccusage() {
   while true; do
     clear
-    ccusage-dense
+    ccusage
     sleep ${1:-60}
   done
 }

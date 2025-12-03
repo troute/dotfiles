@@ -36,6 +36,8 @@ vim.opt.colorcolumn = "80,120"
 vim.opt.signcolumn = "yes"
 
 vim.keymap.set("n", "<Leader>sc", "<cmd>luafile $MYVIMRC<CR>", { desc = "Source Config" })
+vim.keymap.set({"n", "v"}, "<Leader>y", '"+y', { desc = "Yank to clipboard" })
+vim.keymap.set("n", "<Leader>Y", '"+Y', { desc = "Yank line to clipboard" })
 vim.keymap.set("n", "<Leader>tp", "<cmd>tabprev<CR>", { desc = "Previous tab", silent = true })
 vim.keymap.set("n", "<Leader>tn", "<cmd>tabnext<CR>", { desc = "Next tab", silent = true })
 vim.keymap.set("n", "<Leader>tN", "<cmd>tabnew<CR>", { desc = "New tab", silent = true })

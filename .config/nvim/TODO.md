@@ -8,3 +8,4 @@ rust and then reloads the buffer after normal buffer save, but this seems danger
 
 All Lua files in /lua/plugins should be named after a single plugin they configure, rather than generic names like
 "completion" or "formatting".
+## figure out git worktrees
