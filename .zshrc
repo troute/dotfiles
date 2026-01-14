@@ -94,6 +94,21 @@ watch-ccusage() {
   done
 }
 
+# Claude Code with daily brew upgrade
+cc() {
+  local marker="/tmp/.claude_last_upgrade"
+  local today=$(date +%Y-%m-%d)
+  if [[ ! -f "$marker" ]] || [[ "$(cat "$marker")" != "$today" ]]; then
+    brew upgrade claude-code
+    echo "$today" > "$marker"
+  fi
+  [[ -d "$1" ]] && cd "$1" && shift
+  claude "$@"
+}
+alias ccf='cc ~/dev/finform'
+alias ccr='cc --resume'
+alias ccfr='cc ~/dev/finform --resume'
+
 # NVM
 export NVM_DIR="$HOME/.nvm"
 [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
