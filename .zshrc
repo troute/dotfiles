@@ -1,45 +1,61 @@
+# PATH
 export PATH=$HOME/Library/Python/3.11/bin:$PATH
+export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
+export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 
-# Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
+# History
+HISTFILE=~/.zsh_history
+HISTSIZE=100000
+SAVEHIST=100000
+setopt EXTENDED_HISTORY
+setopt HIST_IGNORE_ALL_DUPS
+setopt SHARE_HISTORY
 
-ZSH_THEME=""  # Unset to use Starship
+# Directory navigation
+setopt AUTO_CD
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
 
-# Oh My Zsh
-zstyle ':omz:update' mode auto      # update automatically without asking
-plugins=(git python pip colored-man-pages zsh-autosuggestions zsh-syntax-highlighting)
-source $ZSH/oh-my-zsh.sh
+# Completion
+autoload -Uz compinit && compinit
 
-alias vim=nvim
-alias v=nvim
-compdef vim=nvim
-compdef v=nvim
-
-# Allow management of dotfiles using a bare git repository
-alias dotfiles='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-compdef dotfiles=git
-
-# Project-specific shell configs
-source ~/.zsh/claude.zsh
-source ~/.zsh/finform.zsh
-
-# NVM
-export NVM_DIR="$HOME/.nvm"
-[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
-[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
-
-# Vim mode (must be before starship init)
+# Vim mode
 bindkey -v
 bindkey '^R' history-incremental-search-backward
 
-eval "$(direnv hook zsh)"
-eval "$(starship init zsh)"
+# Plugins (via Homebrew)
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
+# fzf integration (Ctrl+R for fuzzy history)
+source <(fzf --zsh)
+
+# Aliases
+alias vim=nvim
+alias v=nvim
 alias ll='eza -a --long --icons'
+compdef ll=ls
 
-# Neovim for default editor
+# Dotfiles management (bare git repo)
+alias d='dotfiles'
+alias dotfiles='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
+# Editor
 export EDITOR=nvim
 export VISUAL=nvim
+
+# direnv
+eval "$(direnv hook zsh)"
+
+# Prompt (Starship)
+eval "$(starship init zsh)"
+
+# Project-specific configs
+source ~/.zsh/claude.zsh
+source ~/.zsh/finform.zsh
+
+# fnm (fast node manager)
+eval "$(fnm env --use-on-cd --shell zsh)"
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
@@ -55,6 +71,3 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
-
-export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
-export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
