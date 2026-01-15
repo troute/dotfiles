@@ -1,3 +1,31 @@
+# Create new finform directory with full setup
+finform-init() {
+  local n=${1:?Usage: finform-init <1-6>}
+  local dir=~/dev/finform-worktrees/$n
+  local src=~/dev/finform-worktrees/1
+  local uvicorn_port=$((7999 + n))
+  local vite_port=$((5172 + n))
+
+  [[ -d "$dir" ]] && { echo "$dir exists"; return 1; }
+
+  git clone git@github.com:troute/finform.git "$dir" &&
+  cd "$dir" &&
+  cat > .envrc <<EOF
+source .venv/bin/activate
+export UVICORN_PORT=$uvicorn_port
+EOF
+  if [[ -f "$src/.env.local" && "$n" -ne 1 ]]; then
+    sed -e "s/localhost:5173/localhost:$vite_port/g" \
+        -e "s/localhost:8000/localhost:$uvicorn_port/g" \
+        "$src/.env.local" > .env.local
+    echo "VITE_PORT=$vite_port" >> .env.local
+  fi
+  python3 -m venv .venv &&
+  .venv/bin/pip install -e ".[dev]" &&
+  (cd frontend && npm install) &&
+  direnv allow
+}
+
 # Claude Code with daily brew upgrade
 # Usage: finform-cc [1-6] [--resume] [other claude args...]
 #   finform-cc        → slot 1
