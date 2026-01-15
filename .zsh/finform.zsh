@@ -20,7 +20,7 @@ EOF
         "$src/.env.local" > .env.local
     echo "VITE_PORT=$vite_port" >> .env.local
   fi
-  python3 -m venv .venv &&
+  python3.13 -m venv .venv &&
   .venv/bin/pip install -e ".[dev]" &&
   (cd frontend && npm install) &&
   direnv allow
