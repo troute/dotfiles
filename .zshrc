@@ -19,95 +19,9 @@ compdef v=nvim
 alias dotfiles='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 compdef dotfiles=git
 
-# Claude Code usage with sparklines
-ccusage() {
-  (cd ~/dev/finform/frontend && npx ccusage daily --json | jq -r '
-  .daily as $all_daily |
-  (now | strflocaltime("%Y-%m-%d")) as $today_date |
-  ($today_date | strptime("%Y-%m-%d") | mktime) as $today_ts |
-  ($all_daily[0].date | strptime("%Y-%m-%d") | mktime) as $first_date |
-  ($all_daily[-1].date | strptime("%Y-%m-%d") | mktime) as $last_data_ts |
-  # Extend range to today if today is after last data date
-  ([($last_data_ts), ($today_ts)] | max) as $last_date |
-  (($last_date - $first_date) / 86400 + 1 | floor) as $calendar_days |
-  ($all_daily | map({key: .date, value: .totalCost}) | from_entries) as $costs |
-  ([range($calendar_days | floor)] | map(($first_date + (. * 86400)) | strftime("%Y-%m-%d"))) as $all_dates |
-
-  ($all_dates | map($costs[.] // 0) | max) as $max_cost |
-
-  # Helper function to get color based on cost level (green = high, red = low)
-  def get_color($cost; $max):
-    if $cost == 0 then "\u001b[90m"
-    elif ($cost / $max) > 0.6 then "\u001b[32m"
-    elif ($cost / $max) > 0.3 then "\u001b[33m"
-    else "\u001b[31m"
-    end;
-
-  # Output daily data
-  ($all_dates[] |
-    (. | strptime("%Y-%m-%d") | strftime("%A")[0:1]) as $day |
-    ($costs[.] // 0) as $cost |
-    (if $cost == 0 then 0 else (($cost / $max_cost * 7) | floor | if . > 7 then 7 else . end) end) as $bar_idx |
-    (["▁","▂","▃","▄","▅","▆","▇","█"][$bar_idx]) as $bar |
-    if $cost == 0 then
-      "\u001b[90m\($day) \(.) \($bar)      -\u001b[0m"
-    else
-      "\($day) \(.) " + get_color($cost; $max_cost) + "\($bar)\u001b[0m $\($cost | . * 100 | round / 100)"
-    end
-  ),
-  "─────────────────────",
-
-  # Calculate aggregates
-  ($all_dates[-7:] | map($costs[.] // 0)) as $last7 |
-  ((if ($all_dates | length) >= 30 then $all_dates[-30:] else $all_dates end) | map($costs[.] // 0)) as $last30 |
-  (if ($all_dates | length) >= 30 then 30 else ($all_dates | length) end) as $n |
-
-  (($last30 | add) / $n) as $avg30 |
-  (($last7 | add) / 7) as $avg7 |
-  ($costs[$today_date] // 0) as $today |
-
-  # Get sparkline for averages
-  (if $avg30 == 0 then 0 else (($avg30 / $max_cost * 7) | floor | if . > 7 then 7 else . end) end) as $bar30_idx |
-  (if $avg7 == 0 then 0 else (($avg7 / $max_cost * 7) | floor | if . > 7 then 7 else . end) end) as $bar7_idx |
-  (if $today == 0 then 0 else (($today / $max_cost * 7) | floor | if . > 7 then 7 else . end) end) as $bar_today_idx |
-
-  (["▁","▂","▃","▄","▅","▆","▇","█"][$bar30_idx]) as $bar30 |
-  (["▁","▂","▃","▄","▅","▆","▇","█"][$bar7_idx]) as $bar7 |
-  (["▁","▂","▃","▄","▅","▆","▇","█"][$bar_today_idx]) as $bar_today |
-
-  "Avg (\($n)d):   " + get_color($avg30; $max_cost) + "\($bar30)\u001b[0m $\($avg30 | . * 100 | round / 100)/day",
-  "Total (\($n)d):   $\(($last30 | add) | . * 100 | round / 100)",
-  "─────────────────────",
-  "Avg (7d):    " + get_color($avg7; $max_cost) + "\($bar7)\u001b[0m $\($avg7 | . * 100 | round / 100)/day",
-  "Total (7d):    $\(($last7 | add) | . * 100 | round / 100)",
-  "─────────────────────",
-  "Today:       " + get_color($today; $max_cost) + "\($bar_today)\u001b[0m $\($today | . * 100 | round / 100)"
-')
-}
-
-# Watch version of ccusage
-watch-ccusage() {
-  while true; do
-    clear
-    ccusage
-    sleep ${1:-60}
-  done
-}
-
-# Claude Code with daily brew upgrade
-cc() {
-  local marker="/tmp/.claude_last_upgrade"
-  local today=$(date +%Y-%m-%d)
-  if [[ ! -f "$marker" ]] || [[ "$(cat "$marker")" != "$today" ]]; then
-    brew upgrade claude-code
-    echo "$today" > "$marker"
-  fi
-  [[ -d "$1" ]] && cd "$1" && shift
-  claude "$@"
-}
-alias ccf='cc ~/dev/finform'
-alias ccr='cc --resume'
-alias ccfr='cc ~/dev/finform --resume'
+# Project-specific shell configs
+source ~/.zsh/claude.zsh
+source ~/.zsh/finform.zsh
 
 # NVM
 export NVM_DIR="$HOME/.nvm"
