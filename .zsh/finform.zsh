@@ -1,6 +1,8 @@
 # Create new finform directory with full setup
 finform-init() {
-  local n=${1:?Usage: finform-init <1-6>}
+  local n=${1:?Usage: finform-init <1-12>}
+  [[ "$n" =~ ^([1-9]|1[0-2])$ ]] || { echo "Slot must be 1-12"; return 1; }
+
   local dir=~/dev/finform-worktrees/$n
   local src=~/dev/finform-worktrees/1
   local uvicorn_port=$((7999 + n))
@@ -21,43 +23,19 @@ EOF
     echo "VITE_PORT=$vite_port" >> .env.local
   fi
   python3.13 -m venv .venv &&
-  .venv/bin/pip install -e ".[dev]" &&
+  .venv/bin/pip install -e ".[dev,test]" &&
   (cd frontend && npm install) &&
-  direnv allow
+  direnv allow &&
+  pre-commit install
 }
-
-# Claude Code with daily brew upgrade
-# Usage: finform-cc [1-6] [--resume] [other claude args...]
-#   finform-cc        → slot 1
-#   finform-cc 3      → slot 3
-#   finform-cc --resume → slot 1 with resume
-#   finform-cc 3 --resume → slot 3 with resume
-finform-cc() {
-  local marker="/tmp/.claude_last_upgrade"
-  local today=$(date +%Y-%m-%d)
-  if [[ ! -f "$marker" ]] || [[ "$(cat "$marker")" != "$today" ]]; then
-    brew upgrade claude-code
-    echo "$today" > "$marker"
-  fi
-
-  local slot=1
-  local args=()
-
-  for arg in "$@"; do
-    if [[ "$arg" =~ ^[1-6]$ ]]; then
-      slot="$arg"
-    else
-      args+=("$arg")
-    fi
-  done
-
-  cd ~/dev/finform-worktrees/$slot
-  claude "${args[@]}"
-}
+alias ff-init='finform-init'
 
 # Finform tmux layout: claude on left, blank/uvicorn/npm on right
+# Usage: finform-start [1-12]
 finform-start() {
   local n=${1:-1}
+  [[ "$n" =~ ^([1-9]|1[0-2])$ ]] || { echo "Slot must be 1-12"; return 1; }
+
   local dir="$HOME/dev/finform-worktrees/$n"
 
   if [[ ! -d "$dir" ]]; then
@@ -88,7 +66,8 @@ finform-start() {
   tmux send-keys -t 2 "uvicorn backend.main:app --reload" Enter
 
   # Send npm to bottom-right (frontend subdir)
-  tmux send-keys -t 3 "cd frontend && npm run dev" Enter
+  tmux send-keys -t 3 "cd frontend" Enter
+  tmux send-keys -t 3 "npm run dev" Enter
 
   # Top-right (pane 1) stays blank
 
@@ -96,3 +75,76 @@ finform-start() {
   tmux select-pane -t 0
   claude
 }
+alias ff-start='finform-start'
+
+# Show git status of all finform worktrees
+# Usage: finform-status
+finform-status() {
+  local base=~/dev/finform-worktrees
+
+  for n in {1..12}; do
+    local dir="$base/$n"
+    local slot=$(printf "%02d" "$n")
+
+    if [[ ! -d "$dir" ]]; then
+      echo "$slot: ---"
+      continue
+    fi
+
+    if [[ ! -d "$dir/.git" ]]; then
+      echo "$slot: (not a git repo)"
+      continue
+    fi
+
+    local branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    local changes=$(git -C "$dir" status --porcelain 2>/dev/null)
+
+    if [[ -z "$changes" ]]; then
+      echo "$slot: \e[32mclean\e[0m    $branch"
+    else
+      echo "$slot: dirty    $branch"
+    fi
+  done
+}
+alias ff-status='finform-status'
+
+# Pull all clean finform worktrees
+# Usage: finform-pull
+finform-pull() {
+  local base=~/dev/finform-worktrees
+  local pulled=0
+  local skipped=0
+
+  for n in {1..12}; do
+    local dir="$base/$n"
+
+    [[ ! -d "$dir" ]] && continue
+    [[ ! -d "$dir/.git" ]] && continue
+
+    local changes=$(git -C "$dir" status --porcelain 2>/dev/null)
+
+    local slot=$(printf "%02d" "$n")
+
+    if [[ -n "$changes" ]]; then
+      echo "$slot: \e[33mskipped (dirty)\e[0m"
+      ((skipped++))
+      continue
+    fi
+
+    local output=$(git -C "$dir" pull 2>&1)
+    if [[ $? -eq 0 ]]; then
+      if [[ "$output" == *"Already up to date"* ]]; then
+        echo "$slot: up to date"
+      else
+        echo "$slot: \e[32mpulled\e[0m"
+      fi
+      ((pulled++))
+    else
+      echo "$slot: \e[31mpull failed\e[0m"
+    fi
+  done
+
+  echo ""
+  echo "Pulled: $pulled, Skipped: $skipped"
+}
+alias ff-pull='finform-pull'
