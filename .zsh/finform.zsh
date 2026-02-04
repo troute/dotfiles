@@ -7,6 +7,7 @@ finform-init() {
   local src=~/dev/finform-worktrees/1
   local uvicorn_port=$((7999 + n))
   local vite_port=$((5172 + n))
+  local storybook_port=$((6005 + n))
 
   [[ -d "$dir" ]] && { echo "$dir exists"; return 1; }
 
@@ -15,6 +16,7 @@ finform-init() {
   cat > .envrc <<EOF
 source .venv/bin/activate
 export UVICORN_PORT=$uvicorn_port
+export STORYBOOK_PORT=$storybook_port
 EOF
   if [[ -f "$src/.env.local" && "$n" -ne 1 ]]; then
     sed -e "s/localhost:5173/localhost:$vite_port/g" \
@@ -30,7 +32,7 @@ EOF
 }
 alias ff-init='finform-init'
 
-# Finform tmux layout: claude on left, blank/uvicorn/npm on right
+# Finform tmux layout: claude on left, blank/uvicorn/npm/storybook on right
 # Usage: finform-start [1-12]
 finform-start() {
   local n=${1:-1}
@@ -51,25 +53,27 @@ finform-start() {
   cd "$dir"
 
   # Name the tmux window
-  tmux rename-window "finform-$n"
+  local vite_port=$((5172 + n))
+  tmux rename-window "ff-$n [$vite_port]"
 
   # Split vertically (right pane becomes selected)
   tmux split-window -h -c "$dir"
 
-  # Split right pane horizontally twice for 3 panes
+  # Split right pane horizontally for 4 panes
+  tmux split-window -v -c "$dir"
   tmux split-window -v -c "$dir"
   tmux split-window -v -c "$dir"
 
-  # Pane layout: 0=left, 1=top-right, 2=middle-right, 3=bottom-right (selected)
+  # Pane layout: 0=left, 1=top-right (blank), 2=uvicorn, 3=npm, 4=storybook
 
-  # Send uvicorn to middle-right
+  # Send uvicorn to pane 2
   tmux send-keys -t 2 "uvicorn backend.main:app --reload" Enter
 
-  # Send npm to bottom-right (frontend subdir)
-  tmux send-keys -t 3 "cd frontend" Enter
-  tmux send-keys -t 3 "npm run dev" Enter
+  # Send npm dev to pane 3
+  tmux send-keys -t 3 "cd frontend && npm run dev" Enter
 
-  # Top-right (pane 1) stays blank
+  # Send storybook to pane 4
+  tmux send-keys -t 4 "cd frontend && npm run storybook" Enter
 
   # Return to left pane and run claude
   tmux select-pane -t 0

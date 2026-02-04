@@ -22,6 +22,7 @@ autoload -Uz compinit && compinit
 # Vim mode
 bindkey -v
 bindkey '^R' history-incremental-search-backward
+bindkey '^?' backward-delete-char
 
 # Plugins (via Homebrew)
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
@@ -71,3 +72,4 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
+export HUD_USER_ACCESS_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI2IiwianRpIjoiZDQ1MmE3ZmZkNTNjMTZkN2U3YmU1OTI2ZjgyMTljN2YxZjAxOGQ4Y2FlYjA5ZWVmZTdhNGIwM2E1MmU1ZjQ3ODRjYmQ1ODI5YThhZGUyM2EiLCJpYXQiOjE3Njg2OTM3MjAuMDk0NzA4LCJuYmYiOjE3Njg2OTM3MjAuMDk0NzEsImV4cCI6MjA4NDIyNjUyMC4wOTAwNSwic3ViIjoiMTExOTcxIiwic2NvcGVzIjpbXX0.M5movSyr9oV5bp-wgJeAkKMhkpOCXv5jnG_hao1PNr0fpbkMIYBNXcL12RyGR0O9n0f5Br05wPynvvFCQw-kWg
