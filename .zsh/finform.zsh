@@ -67,10 +67,10 @@ finform-start() {
   # Pane layout: 0=left, 1=top-right (blank), 2=uvicorn, 3=npm, 4=storybook
 
   # Send uvicorn to pane 2
-  tmux send-keys -t 2 "uvicorn backend.main:app --reload" Enter
+  tmux send-keys -t 2 "pip install -e '.[dev,test]' && uvicorn backend.main:app --reload" Enter
 
   # Send npm dev to pane 3
-  tmux send-keys -t 3 "cd frontend && npm run dev" Enter
+  tmux send-keys -t 3 "cd frontend && npm install && npm run dev" Enter
 
   # Send storybook to pane 4
   tmux send-keys -t 4 "cd frontend && npm run storybook" Enter
