@@ -16,6 +16,7 @@ finform-init() {
   cat > .envrc <<EOF
 source .venv/bin/activate
 export UVICORN_PORT=$uvicorn_port
+export VITE_PORT=$vite_port
 export STORYBOOK_PORT=$storybook_port
 EOF
   if [[ -f "$src/.env.local" && "$n" -ne 1 ]]; then

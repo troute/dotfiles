@@ -13,7 +13,7 @@ This document captures my preferences and conventions for terminal usage, comman
 ## Quick Reference
 
 **Critical Patterns:**
-- Use subprocess pattern for directory-specific commands
+- Always return to project root after `cd` into subdirectories
 - Always use virtual environment Python (`python`, not `python3`)
 - Conventional commit messages with bracket prefixes
 - Chain commands with `&&` to stop on failure
@@ -27,33 +27,29 @@ This document captures my preferences and conventions for terminal usage, comman
 
 ## Terminal Conventions
 
-### Use subprocess pattern for directory-specific commands
+### Always return to project root after directory changes
 
-Use `(cd directory && command)` instead of `cd directory && command` to preserve the current working directory. This prevents unexpected PWD changes that can confuse both humans and AI agents.
+When running commands in a subdirectory, always chain `&& cd ..` at the end to return to the project root. Getting stranded in a subdirectory causes confusion about file paths and available commands.
 
 #### Do
 
 ```bash
-# Frontend operations
-(cd frontend && npm run generate-client)
-(cd frontend && npx prettier --write .)
-(cd frontend && npm run dev)
+# Frontend operations — always return to project root
+cd frontend && npm run generate-client && cd ..
+cd frontend && npx prettier --write . && cd ..
 
-# Backend operations (if applicable)
-(cd backend && pytest)
+# Backend operations
+cd backend && pytest && cd ..
 ```
 
 #### Don't
 
 ```bash
-# Changes PWD unexpectedly
+# Leaves you stranded in frontend/
 cd frontend && npm run generate-client
-cd frontend && npx prettier --write .
 
-# Now you're in frontend/ directory - may be confusing
+# Now file paths and available commands are wrong
 ```
-
-Note: This pattern is especially important when AI agents execute commands, as they may lose track of the current directory.
 
 ---
 
@@ -111,8 +107,8 @@ Run formatters often to maintain consistent code style.
 # Python formatting
 ruff format .
 
-# Frontend formatting (using subprocess!)
-(cd frontend && npm run format)
+# Frontend formatting
+cd frontend && npm run format && cd ..
 ```
 
 ---
@@ -134,8 +130,8 @@ alembic upgrade head
 alembic downgrade base && alembic upgrade head
 
 # Database queries (non-interactive, scriptable)
-psql -d finform -c "SELECT * FROM users LIMIT 10"
-psql -d finform -c "SELECT COUNT(*) FROM assets"
+psql -d <dbname> -c "SELECT * FROM users LIMIT 10"
+psql -d <dbname> -c "SELECT COUNT(*) FROM assets"
 ```
 
 ---
@@ -188,7 +184,7 @@ Projects are typically located in `~/dev/`, but may occasionally be in other dir
 ```bash
 npx ccusage --json | jq '.'
 cat response.json | jq '.data'
-psql -d finform -c "SELECT json_column FROM table" | jq '.field'
+psql -d <dbname> -c "SELECT json_column FROM table" | jq '.field'
 ```
 
 **Clipboard:**

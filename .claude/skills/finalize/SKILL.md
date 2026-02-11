@@ -16,7 +16,13 @@ Please examine our full change set relative to latest main, and verify that it i
 
 Pay special attention to:
 
+> Simplicity. Is our solution maximally simple while delivering on the original desired behavior?
+
 > Interface design. Are class, method/function, component, and service interfaces minimal, coherent, and well designed? Are they self documenting, via both clear naming and intuitiveness? Do they allow for future extension? Do they lend themselves to easy testing, inspection, and maintenance?
+
+> Idiomatic implementation. Do changes match modern conventions for the languages, libraries, and tools that we are using? Are we doing everything atypical that we should reconsider? Will a future developer be surprised by any of the patterns we are employing?
+
+> Codebase consistency. Do changes match existing patterns in the codebase? If not, is it because existing patterns are flawed? If so, should we tackle those flaws now (see later item about leaving the codebase better than we found it), or simply note them for follow-up?
 
 > Coherence. Does the full change set demonstrate consistent practices? Could earlier changes require tweaks to be brought in line with the final design?
 
