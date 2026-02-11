@@ -1,0 +1,64 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tmux set-option -w -t \"$TMUX_PANE\" @claude_status '🟢' 2>/dev/null; true"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tmux set-option -w -t \"$TMUX_PANE\" @claude_status '🟢' 2>/dev/null; true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tmux set-option -w -t \"$TMUX_PANE\" @claude_status '🔴' 2>/dev/null; true"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tmux set-option -w -t \"$TMUX_PANE\" @claude_status '🔴' 2>/dev/null; true"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tmux set-option -w -t \"$TMUX_PANE\" @claude_status '🟡' 2>/dev/null; true"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tmux set-option -wu -t \"$TMUX_PANE\" @claude_status 2>/dev/null; true"
+          }
+        ]
+      }
+    ]
+  }
+}
