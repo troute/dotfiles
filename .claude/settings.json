@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tmux set-option -w -t \"$TMUX_PANE\" @claude_status '🟢' 2>/dev/null; true"
+            "command": "tmux set-option -p -t \"$TMUX_PANE\" @claude_pane 'working' 2>/dev/null; tmux set-option -w -t \"$TMUX_PANE\" @claude_status 'working' 2>/dev/null; true"
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tmux set-option -w -t \"$TMUX_PANE\" @claude_status '🟢' 2>/dev/null; true"
+            "command": "tmux set-option -p -t \"$TMUX_PANE\" @claude_pane 'working' 2>/dev/null; tmux set-option -w -t \"$TMUX_PANE\" @claude_status 'working' 2>/dev/null; true"
           }
         ]
       }
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tmux set-option -w -t \"$TMUX_PANE\" @claude_status '🔴' 2>/dev/null; true"
+            "command": "tmux set-option -p -t \"$TMUX_PANE\" @claude_pane 'stopped' 2>/dev/null; tmux set-option -w -t \"$TMUX_PANE\" @claude_status 'stopped' 2>/dev/null; true"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tmux set-option -w -t \"$TMUX_PANE\" @claude_status '🔴' 2>/dev/null; true"
+            "command": "tmux set-option -p -t \"$TMUX_PANE\" @claude_pane 'stopped' 2>/dev/null; tmux set-option -w -t \"$TMUX_PANE\" @claude_status 'stopped' 2>/dev/null; true"
           }
         ]
       }
@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tmux set-option -w -t \"$TMUX_PANE\" @claude_status '🟡' 2>/dev/null; true"
+            "command": "tmux set-option -p -t \"$TMUX_PANE\" @claude_pane 'working' 2>/dev/null; tmux set-option -w -t \"$TMUX_PANE\" @claude_status 'working' 2>/dev/null; true"
           }
         ]
       }
@@ -55,7 +55,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tmux set-option -wu -t \"$TMUX_PANE\" @claude_status 2>/dev/null; true"
+            "command": "tmux set-option -pu -t \"$TMUX_PANE\" @claude_pane 2>/dev/null; tmux set-option -wu -t \"$TMUX_PANE\" @claude_status 2>/dev/null; true"
           }
         ]
       }
