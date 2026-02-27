@@ -28,8 +28,7 @@ bindkey '^?' backward-delete-char
 alias vim=nvim
 alias v=nvim
 alias g=git
-alias ll='eza -a --long --icons'
-compdef ll=ls
+alias ll='eza -a --long --icons=auto'
 
 # Dotfiles management (bare git repo)
 alias d='dotfiles'
