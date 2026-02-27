@@ -1,0 +1,23 @@
+[user]
+	name = Michael Andreas Troute
+	email = michael.troute@gmail.com
+	signingkey = /Users/mtroute/.ssh/id_ed25519.pub
+[push]
+	autoSetupRemote = true
+[gpg]
+	format = ssh
+[commit]
+	gpgsign = true
+[alias]
+	a = add
+	b = branch
+	c = commit
+	co = checkout
+	d = diff
+	f = fetch
+	l = log
+	p = pull
+	ps = push
+	r = rebase
+	s = status
+	st = stash
