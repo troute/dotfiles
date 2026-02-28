@@ -8,6 +8,7 @@ finform-init() {
   local uvicorn_port=$((7999 + n))
   local vite_port=$((5172 + n))
   local storybook_port=$((6005 + n))
+  local temporal_task_queue=$(printf "finform-worktree-%02d" "$n")
 
   [[ -d "$dir" ]] && { echo "$dir exists"; return 1; }
 
@@ -22,6 +23,7 @@ EOF
   if [[ -f "$src/.env.local" && "$n" -ne 1 ]]; then
     sed -e "s/localhost:5173/localhost:$vite_port/g" \
         -e "s/localhost:8000/localhost:$uvicorn_port/g" \
+        -e "s/^TEMPORAL_TASK_QUEUE=.*/TEMPORAL_TASK_QUEUE=$temporal_task_queue/" \
         "$src/.env.local" > .env.local
     echo "VITE_PORT=$vite_port" >> .env.local
   fi
@@ -75,11 +77,12 @@ finform-start() {
   # Split right pane horizontally
   tmux split-window -v -c "$dir"
   tmux split-window -v -c "$dir"
+  tmux split-window -v -c "$dir"
   if (( ${#opt_storybook} )); then
     tmux split-window -v -c "$dir"
   fi
 
-  # Pane layout: 0=left, 1=top-right (blank), 2=uvicorn, 3=npm, 4=storybook (if -s)
+  # Pane layout: 0=left, 1=top-right (blank), 2=uvicorn, 3=npm, 4=temporal worker, 5=storybook (if -s)
 
   # Send uvicorn to pane 2
   tmux send-keys -t 2 "pip install -e '.[dev,test]' && uvicorn backend.main:app --reload" Enter
@@ -87,8 +90,11 @@ finform-start() {
   # Send npm dev to pane 3
   tmux send-keys -t 3 "cd frontend && npm install && npm run dev" Enter
 
+  # Send temporal worker to pane 4
+  tmux send-keys -t 4 "python -m backend.temporal.worker" Enter
+
   if (( ${#opt_storybook} )); then
-    tmux send-keys -t 4 "cd frontend && npm run storybook" Enter
+    tmux send-keys -t 5 "cd frontend && npm run storybook" Enter
   fi
 
   # Return to left pane and offer resume if orphan
@@ -261,11 +267,15 @@ finform-pull() {
 alias fpull='finform-pull'
 alias fp='finform-pull'
 
-# Open finform frontend in browser
-# Usage: finform-open [-s|--staging] [-p|--production] [1-12]
+# Open finform in browser
+# Usage: finform-open [-S|--staging] [-P|--production] [-s|--storybook] [-t|--temporal] [1-12]
 finform-open() {
-  local -a opt_staging opt_production
-  zparseopts -D -E -- s=opt_staging -staging=opt_staging p=opt_production -production=opt_production
+  local -a opt_staging opt_production opt_storybook opt_temporal
+  zparseopts -D -E -- \
+    S=opt_staging -staging=opt_staging \
+    P=opt_production -production=opt_production \
+    s=opt_storybook -storybook=opt_storybook \
+    t=opt_temporal -temporal=opt_temporal
 
   if (( ${#opt_production} )); then
     open "https://app.finform.ai"
@@ -277,18 +287,30 @@ finform-open() {
     return
   fi
 
-  local port
+  # Resolve slot number from argument or environment
+  local n
   if [[ -n "$1" ]]; then
-    local n=$1
+    n=$1
     [[ "$n" =~ ^([1-9]|1[0-2])$ ]] || { echo "Slot must be 1-12"; return 1; }
-    port=$((5172 + n))
   elif [[ -n "$VITE_PORT" ]]; then
-    port=$VITE_PORT
+    n=$((VITE_PORT - 5172))
   else
-    echo "Usage: finform-open [-s|--staging] [-p|--production] [1-12]"
+    echo "Usage: finform-open [-S|--staging] [-P|--production] [-s|--storybook] [-t|--temporal] [1-12]"
     return 1
   fi
-  open "http://localhost:$port"
+
+  if (( ${#opt_temporal} )); then
+    local queue=$(printf "finform-worktree-%02d" "$n")
+    open "http://localhost:8233/namespaces/default/workflows?query=%60TaskQueue%60%3D%22${queue}%22"
+    return
+  fi
+
+  if (( ${#opt_storybook} )); then
+    open "http://localhost:$((6005 + n))"
+    return
+  fi
+
+  open "http://localhost:$((5172 + n))"
 }
 alias fopen='finform-open'
 alias fo='finform-open'
