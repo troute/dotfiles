@@ -20,6 +20,7 @@ This document captures my preferences and conventions for terminal usage, comman
 
 **Common Tools:**
 - Git with conventional commits
+- uv for Python dependency and version management
 - Ruff for Python formatting
 - Alembic with autogeneration for migrations
 - psql for non-interactive database queries
@@ -136,20 +137,22 @@ psql -d <dbname> -c "SELECT COUNT(*) FROM assets"
 
 ---
 
-### Always use the virtual environment Python
+### Use uv for Python dependency and environment management
 
-Python projects typically use a virtual environment at `.venv` (95% of cases), which is gitignored and invisible in file listings. The environment is usually auto-activated via `.envrc`.
+Python projects use uv to manage Python versions, virtual environments, and dependencies. The `.venv` directory is created by `uv sync`, is gitignored, and invisible in file listings. The environment is usually auto-activated via `.envrc`.
 
 #### Do
 
 ```bash
-# Use venv's python (aliased by activation)
+# Set up or update the environment (reads .python-version, creates .venv, installs deps)
+uv sync
+
+# Add a new dependency
+uv add package-name
+
+# Use venv's python (aliased by activation via .envrc)
 python script.py
 python -m module.submodule
-
-# Install packages in venv
-pip install package-name
-pip install -e .[dev]
 
 # Run Python tools from venv
 alembic upgrade head
@@ -160,15 +163,18 @@ pytest
 #### Don't
 
 ```bash
+# Don't use pip directly
+pip install package-name  # Wrong - bypasses uv lockfile
+pip install -e .[dev]  # Wrong - use uv sync instead
+
 # Don't use system python3
 python3 script.py  # Wrong - bypasses venv
-python3 -m pip install package  # Wrong - installs to system
 
-# Don't create venv if .venv already exists
-python3 -m venv .venv  # Check first - likely already exists
+# Don't create venv manually
+python3 -m venv .venv  # Wrong - uv sync handles this
 ```
 
-Note: The `.venv` directory is gitignored and won't appear in file listings, but it typically exists. Only use `python3` when explicitly creating the venv itself or when working outside the venv context (rare).
+Note: The `.venv` directory is gitignored and won't appear in file listings, but it typically exists. After adding dependencies with `uv add`, the lockfile (`uv.lock`) is updated automatically and should be committed.
 
 ---
 

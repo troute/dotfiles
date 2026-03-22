@@ -15,14 +15,28 @@ taking these guidelines into consideration when crafting your solutions.
 extensibility, and maintainability.
 * AVOID leaving trivial comments which merely restate the code. Reserve comments for scenarios where more context would
 be helpful to an engineer working on this section of the code in the future.
+* NEVER write comments or docstrings that reference prior implementations ("replaces X", "formerly Y",
+"eliminates redundant Z"). Comments should describe the current state. Git history provides the context
+of what changed.
 * NEVER add functionality that was not explicitly requested, or necessary to accomplish explicitly stated goals. AVOID
 attempting to anticipate future extensions to explicitly requested functionality, unless explicitly asked to do so.
 * AVOID making cosmetic changes to existing code unless explicitly requested.
 * ALWAYS attempt to respect existing abstractions and responsibility boundaries when adding new functionality.
+* When modifying shared code, trace all callers and consumers to fully understand the impact of the change.
+* When solving a problem, consider whether the right fix is one level up in the conceptual hierarchy. If a solution
+feels forced within the current interface, the interface itself may need to change. Modifying a higher-level abstraction
+is often more elegant and effective than shoehorning a fix into an interface that wasn't designed for it.
+* When auditing or generalizing about data, directory structures, or codebase patterns, check multiple samples before
+drawing conclusions. State confidence level and sample size rather than asserting universality from a single example.
 * ALWAYS be honest about what is and is not possible. I would prefer to learn early if you think a task is ill-
 conceived. Brutal honesty helps avoid wasted time.
 * ALWAYS take note of tradeoffs to a particular approach and make sure to align with me before choosing one particular
 alternative, for instance the choice of one library over another.
+* If three separate attempts to fix the same problem all fail, stop and re-examine the issue from first principles. Three
+failed fixes likely means the current approach is wrong, not that the fourth attempt will succeed.
+* When debugging runtime behavior, consider whether collaborating with the user (e.g., adding console.logs and asking
+them to reproduce) would be faster than investigating solo via browser automation. Default to collaborative debugging
+for visual, timing, or stateful issues.
 * Obey DRY, KISS, YAGNI, and SOLID principles:
   * DRY: Don't Repeat Yourself - Every piece of knowledge or logic should have a single, unambiguous representation in the codebase. Avoid duplication by extracting shared functionality into reusable functions, classes, or modules.
   * KISS: Keep It Simple, Stupid
@@ -60,16 +74,16 @@ precisely because you view the task as comparatively simple.
 
 ### Python
 
-Use Python virtual environments to isolate dependencies. Most projects already have a `.venv` directory (95% of cases), which is gitignored and not visible in file listings.
+I use [uv](https://docs.astral.sh/uv/) to manage Python versions, virtual environments, and dependencies. Most projects already have a `.venv` directory (created by `uv sync`), which is gitignored and not visible in file listings.
 
-**Check if .venv exists before creating:**
+**Setting up a project:**
 
 ```bash
-# Only create if .venv doesn't exist
-python3 -m venv .venv
+# uv sync reads .python-version, creates .venv, and installs all dependencies
+uv sync
 ```
 
-I will often do this myself when setting up a brand new project, so check before attempting to create a new virtual environment. When using virtual environments, I also configure a `.envrc` to activate the environment automatically:
+I will often do this myself when setting up a brand new project, so check before attempting to set up a new environment. When using virtual environments, I also configure a `.envrc` to activate the environment automatically:
 
 ```bash
 # .envrc

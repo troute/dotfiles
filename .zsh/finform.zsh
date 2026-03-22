@@ -8,24 +8,31 @@ finform-init() {
   local uvicorn_port=$((7999 + n))
   local vite_port=$((5172 + n))
   local storybook_port=$((6005 + n))
-  local temporal_task_queue=$(printf "finform-worktree-%02d" "$n")
+  local temporal_task_queue="finform_${n}"
+  local db_name="finform_${n}"
 
   [[ -d "$dir" ]] && { echo "$dir exists"; return 1; }
 
   git clone git@github.com:troute/finform.git "$dir" &&
   cd "$dir" &&
+  createdb "$db_name" 2>/dev/null
   cat > .envrc <<EOF
+source_up
 source .venv/bin/activate
+export FINFORM_SLOT=$n
 export UVICORN_PORT=$uvicorn_port
 export VITE_PORT=$vite_port
 export STORYBOOK_PORT=$storybook_port
+export PC_PORT_NUM=$((8079 + n))
+export PC_SOCKET_PATH="/tmp/process-compose-finform-${n}.sock"
+export DATABASE_URL=postgresql://mtroute@localhost/$db_name
 EOF
   if [[ -f "$src/.env.local" && "$n" -ne 1 ]]; then
     sed -e "s/localhost:5173/localhost:$vite_port/g" \
         -e "s/localhost:8000/localhost:$uvicorn_port/g" \
+        -e "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://mtroute@localhost/$db_name|" \
         -e "s/^TEMPORAL_TASK_QUEUE=.*/TEMPORAL_TASK_QUEUE=$temporal_task_queue/" \
         "$src/.env.local" > .env.local
-    echo "VITE_PORT=$vite_port" >> .env.local
   fi
   python3.13 -m venv .venv &&
   .venv/bin/pip install -e ".[dev,test]" &&
@@ -35,14 +42,138 @@ EOF
 }
 alias finit='finform-init'
 
-# Finform tmux layout: claude on left, blank/uvicorn/npm on right (+ optional storybook)
-# Usage: finform-start [-s|--storybook] [1-12]
-finform-start() {
+# Ensure the shared Temporal dev server is running.
+# Starts it in the current pane (blocking) if not running elsewhere.
+ensure-temporal-dev-server() {
+  if lsof -i :7233 -sTCP:LISTEN &>/dev/null; then
+    return 0
+  fi
+  temporal server start-dev --db-filename /tmp/finform-temporal.db
+}
+
+# Prefetch shared state for worktree checks.
+# Sets listening, claude_cwds, tmux_windows in caller scope.
+_finform-prefetch() {
+  listening=$(netstat -an -p tcp 2>/dev/null | grep LISTEN)
+  claude_cwds=$(lsof -c claude -a -d cwd -Fn 2>/dev/null | grep '^n' | sed 's/^n//')
+  tmux_windows=""
+  if [[ -n "$TMUX" ]]; then
+    tmux_windows=$(tmux list-windows -F '#{window_name}' 2>/dev/null)
+  fi
+}
+
+# Check if worktree N is idle (clean, on staging, no active sessions/services).
+# Caller must declare listening, claude_cwds, tmux_windows and call _finform-prefetch.
+_finform-is-idle() {
+  local n=$1
+  local dir="$HOME/dev/finform-worktrees/$n"
+  [[ ! -d "$dir/.git" ]] && return 1
+  local branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  [[ "$branch" != "staging" ]] && return 1
+  [[ -n "$(git -C "$dir" status --porcelain 2>/dev/null)" ]] && return 1
+  echo "$tmux_windows" | grep -q "^f-${n}\b" && return 1
+  echo "$claude_cwds" | grep -q "^${dir}$" && return 1
+  local uvicorn_port=$((7999 + n)) vite_port=$((5172 + n)) storybook_port=$((6005 + n))
+  echo "$listening" | grep -q "\.${uvicorn_port} " && return 1
+  echo "$listening" | grep -q "\.${vite_port} " && return 1
+  echo "$listening" | grep -q "\.${storybook_port} " && return 1
+  return 0
+}
+
+# Legacy 7-pane tmux layout (kept until process-compose is validated)
+finform-start-legacy() {
   local -a opt_storybook
   zparseopts -D -E -- s=opt_storybook -storybook=opt_storybook
 
   local n=${1:-1}
   [[ "$n" =~ ^([1-9]|1[0-2])$ ]] || { echo "Slot must be 1-12"; return 1; }
+
+  local dir="$HOME/dev/finform-worktrees/$n"
+
+  if [[ ! -d "$dir" ]]; then
+    echo "Directory $dir does not exist"
+    return 1
+  fi
+
+  if [[ -z "$TMUX" ]]; then
+    echo "Not in a tmux session"
+    return 1
+  fi
+
+  cd "$dir"
+
+  local is_orphan=false
+  local changes=$(git -C "$dir" status --porcelain 2>/dev/null)
+  if [[ -n "$changes" ]]; then
+    local tmux_windows=$(tmux list-windows -F '#{window_name}' 2>/dev/null)
+    if ! echo "$tmux_windows" | grep -q "^f-${n}\b"; then
+      is_orphan=true
+    fi
+  fi
+
+  tmux rename-window "f-$n [${VITE_PORT:-???}]"
+
+  tmux split-window -h -c "$dir"
+  tmux split-window -v -c "$dir" -t 1
+  tmux split-window -v -c "$dir" -t 2
+  tmux split-window -h -c "$dir" -t 2
+  tmux split-window -h -c "$dir" -t 4
+  tmux split-window -v -c "$dir" -t 5
+
+  tmux send-keys -t 2 "uv sync && python -m uvicorn backend.main:app --reload" Enter
+  tmux send-keys -t 3 "uv sync && python -m backend.temporal.worker" Enter
+  tmux send-keys -t 4 "cd frontend && npm install && npm run dev" Enter
+
+  if (( ${#opt_storybook} )); then
+    tmux send-keys -t 5 "cd frontend && npm run storybook" Enter
+  else
+    tmux send-keys -t 5 "exit" Enter
+  fi
+
+  tmux send-keys -t 6 "lsof -i :7233 -sTCP:LISTEN &>/dev/null && exit || temporal server start-dev --db-filename /tmp/finform-temporal.db" Enter
+
+  tmux select-pane -t 0
+  if $is_orphan; then
+    echo "Worktree $n has uncommitted changes with no active session."
+    read -q "?Resume previous Claude session? [y/N] " && local claude_flags="-c"
+    echo
+  fi
+  claude ${claude_flags:-}
+}
+alias fsl='finform-start-legacy'
+
+# Finform tmux layout (3-pane, services managed by process-compose):
+#
+# +------------------+------------------+
+# |                  |                  |
+# |   Claude (0)     |   terminal (1)   |
+# |                  |                  |
+# |                  +------------------+
+# |                  | process-compose  |
+# |                  |     TUI (2)      |
+# +------------------+------------------+
+#
+# Usage: finform-start [1-12]  (no arg = first clean worktree on staging)
+finform-start() {
+  local n
+  if [[ -n "$1" ]]; then
+    n=$1
+    [[ "$n" =~ ^([1-9]|1[0-2])$ ]] || { echo "Slot must be 1-12"; return 1; }
+  else
+    local listening claude_cwds tmux_windows
+    _finform-prefetch
+    for candidate in {1..12}; do
+      if _finform-is-idle $candidate; then
+        n=$candidate
+        break
+      fi
+    done
+    if [[ -z "$n" ]]; then
+      echo "No idle worktree found"
+      return 1
+    fi
+    echo "Auto-selected worktree $n"
+  fi
 
   local dir="$HOME/dev/finform-worktrees/$n"
 
@@ -68,44 +199,26 @@ finform-start() {
     fi
   fi
 
-  # Name the tmux window
   tmux rename-window "f-$n [${VITE_PORT:-???}]"
 
-  # Split vertically (right pane becomes selected)
+  # Build 3-pane layout: Claude (left), terminal + process-compose (right)
   tmux split-window -h -c "$dir"
+  tmux split-window -v -c "$dir" -t 1
 
-  # Split right pane horizontally
-  tmux split-window -v -c "$dir"
-  tmux split-window -v -c "$dir"
-  tmux split-window -v -c "$dir"
-  if (( ${#opt_storybook} )); then
-    tmux split-window -v -c "$dir"
-  fi
+  # Pane 0: Claude (left)
+  # Pane 1: terminal (top-right)
+  # Pane 2: process-compose TUI (bottom-right)
 
-  # Pane layout: 0=left, 1=top-right (blank), 2=uvicorn, 3=npm, 4=temporal worker, 5=storybook (if -s)
-
-  # Send uvicorn to pane 2
-  tmux send-keys -t 2 "pip install -e '.[dev,test]' && uvicorn backend.main:app --reload" Enter
-
-  # Send npm dev to pane 3
-  tmux send-keys -t 3 "cd frontend && npm install && npm run dev" Enter
-
-  # Send temporal worker to pane 4
-  tmux send-keys -t 4 "python -m backend.temporal.worker" Enter
-
-  if (( ${#opt_storybook} )); then
-    tmux send-keys -t 5 "cd frontend && npm run storybook" Enter
-  fi
+  tmux send-keys -t 2 "process-compose up" Enter
 
   # Return to left pane and offer resume if orphan
   tmux select-pane -t 0
-  local claude_flags=""
   if $is_orphan; then
     echo "Worktree $n has uncommitted changes with no active session."
-    read -q "?Resume previous Claude session? [y/N] " && claude_flags="-c"
+    read -q "?Resume previous Claude session? [y/N] " && local claude_flags="-c"
     echo
   fi
-  claude $claude_flags
+  claude ${claude_flags:-}
 }
 alias fstart='finform-start'
 alias fs='finform-start'
@@ -119,14 +232,8 @@ finform-status() {
   local uvicorn_port vite_port storybook_port services services_str
   local flags git_field window_line
 
-  local listening=$(netstat -an -p tcp 2>/dev/null | grep LISTEN)
-  local claude_cwds=$(lsof -c claude -a -d cwd -Fn 2>/dev/null | grep '^n' | sed 's/^n//')
-
-  # Get tmux window names (fast)
-  local tmux_windows=""
-  if [[ -n "$TMUX" ]]; then
-    tmux_windows=$(tmux list-windows -F '#{window_name}' 2>/dev/null)
-  fi
+  local listening claude_cwds tmux_windows
+  _finform-prefetch
 
   for n in {1..12}; do
     dir="$base/$n"
@@ -195,13 +302,12 @@ finform-status() {
     fi
 
     # Color branch name: staging=green, main=yellow, other=plain
-    local padded_branch=$(printf "%-20s" "$branch")
     if [[ "$branch" == "staging" ]]; then
-      branch_display="${c_green}${padded_branch}${c_reset}"
+      branch_display="${c_green}${branch}${c_reset}"
     elif [[ "$branch" == "main" ]]; then
-      branch_display="${c_yellow}${padded_branch}${c_reset}"
+      branch_display="${c_yellow}${branch}${c_reset}"
     else
-      branch_display="$padded_branch"
+      branch_display="$branch"
     fi
 
     printf "%s: %b  %b%b%b\n" "$slot" "$git_field" "$branch_display" "$services_str" "$flags"
@@ -270,11 +376,12 @@ alias fp='finform-pull'
 # Open finform in browser
 # Usage: finform-open [-S|--staging] [-P|--production] [-s|--storybook] [-t|--temporal] [1-12]
 finform-open() {
-  local -a opt_staging opt_production opt_storybook opt_temporal
+  local -a opt_staging opt_production opt_storybook opt_postgres opt_temporal
   zparseopts -D -E -- \
     S=opt_staging -staging=opt_staging \
     P=opt_production -production=opt_production \
     s=opt_storybook -storybook=opt_storybook \
+    p=opt_postgres -postgres=opt_postgres \
     t=opt_temporal -temporal=opt_temporal
 
   if (( ${#opt_production} )); then
@@ -299,14 +406,19 @@ finform-open() {
     return 1
   fi
 
-  if (( ${#opt_temporal} )); then
-    local queue=$(printf "finform-worktree-%02d" "$n")
-    open "http://localhost:8233/namespaces/default/workflows?query=%60TaskQueue%60%3D%22${queue}%22"
+  if (( ${#opt_storybook} )); then
+    open "http://localhost:$((6005 + n))"
     return
   fi
 
-  if (( ${#opt_storybook} )); then
-    open "http://localhost:$((6005 + n))"
+  if (( ${#opt_postgres} )); then
+    pgcli "finform_${n}" || psql "finform_${n}"
+    return
+  fi
+
+  if (( ${#opt_temporal} )); then
+    local queue="finform_${n}"
+    open "http://localhost:8233/namespaces/default/workflows?query=%60TaskQueue%60%3D%22${queue}%22"
     return
   fi
 

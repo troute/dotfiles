@@ -5,6 +5,7 @@ disable-model-invocation: true
 allowed-tools:
   - Bash(git *)
   - Bash(pre-commit run *)
+  - Bash(cd e2e && npx playwright test)
 ---
 
 # Change Set Finalization
@@ -45,9 +46,20 @@ The diff (see Inputs below) shows changes on this branch relative to the target 
 
 Once you have addressed all of the above, ensure that `pre-commit run --all-files` succeeds.
 
-### 4. Output
+### 4. Run E2E Tests
 
-Output a conventional commit message, in the style matching that of the most recent commits on the target branch (see Inputs below for recent commit log).
+Run E2E tests headlessly with `cd e2e && npx playwright test`. **Never** use the `--headed` or `--ui` flags. If tests fail, report the failures but do not attempt to fix them — that is a separate task.
+
+### 5. Output
+
+Wait until all steps above are complete, then produce a single consolidated report covering:
+- Freshness status
+- Review findings (organized by the categories above — only mention categories where you have something to say)
+- Pre-commit results
+- E2E test results
+- A conventional commit message, in the style matching that of the most recent commits on the target branch (see Inputs below for recent commit log)
+
+Brief incremental notes during execution are fine, but the final report should be self-contained.
 
 Do NOT attempt to issue the commit yourself. I will handle all git state management.
 
