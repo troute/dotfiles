@@ -29,11 +29,11 @@ changes to already-tracked files. To add a new file, explicitly `dotfiles add <p
 
 | Category | Files |
 |---|---|
-| Shell | `~/.zshrc`, `~/.zprofile`, `~/.zsh/finform.zsh`, `~/.zsh/claude.zsh` |
+| Shell | `~/.zshrc`, `~/.zprofile`, `~/.zshenv`, `~/.zsh/finform.zsh`, `~/.zsh/claude.zsh` |
 | tmux | `~/.tmux.conf` |
 | Git | `~/.gitconfig` |
 | Neovim | `~/.config/nvim/` (init.lua, lazy config, plugin configs) |
-| Claude Code | `~/.claude/CLAUDE.md`, `STYLE_PYTHON.md`, `STYLE_TYPESCRIPT.md`, `TERMINAL_USE.md`, `settings.json`, `settings.local.json`, `skills/finalize/SKILL.md` |
+| Claude Code | `~/.claude/CLAUDE.md`, `STYLE_PYTHON.md`, `STYLE_TYPESCRIPT.md`, `TERMINAL_USE.md`, `settings.json`, `settings.local.json`, `skills/*/skill.md`, `scripts/extract-session.py` |
 | Python tools | `~/.ruff.toml`, `~/.pdbrc.py` |
 | Starship | `~/.config/starship.toml` |
 

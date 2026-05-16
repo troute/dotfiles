@@ -23,6 +23,9 @@ attempting to anticipate future extensions to explicitly requested functionality
 * AVOID making cosmetic changes to existing code unless explicitly requested.
 * ALWAYS attempt to respect existing abstractions and responsibility boundaries when adding new functionality.
 * When modifying shared code, trace all callers and consumers to fully understand the impact of the change.
+* Before implementing a change, examine the full context surrounding the issue. If the code being modified follows a
+pattern shared with sibling or related sections, consider whether the same change applies to those sections too. A fix,
+improvement, or refactor in one place often implies equivalent work in structurally similar places.
 * When solving a problem, consider whether the right fix is one level up in the conceptual hierarchy. If a solution
 feels forced within the current interface, the interface itself may need to change. Modifying a higher-level abstraction
 is often more elegant and effective than shoehorning a fix into an interface that wasn't designed for it.

@@ -12,7 +12,7 @@ allowed-tools:
 
 ## Instructions
 
-Examine the full change set against the target branch and verify that it is finalized for submission (and by extension, for merge). The target branch defaults to `staging`; the preprocessed inputs below are generated against staging. If an argument was provided (e.g., `/finalize main`), the argument is: `$ARGUMENTS`. In that case, **ignore the preprocessed inputs** and run equivalent git commands yourself against the specified branch. Ensure you examine the entirety of the diff and carefully diligence any relevant files you are unfamiliar with.
+Examine the full change set against the target branch and verify that it is finalized for submission (and by extension, for merge). The target branch defaults to `staging`; the preprocessed inputs below are generated against staging. If an argument was provided, the argument is: `$ARGUMENTS`. If it looks like a branch name (e.g., `main`), use it as the target branch and **ignore the preprocessed inputs** — run equivalent git commands yourself against that branch. Otherwise, treat it as additional context or instructions for the review. Ensure you examine the entirety of the diff and carefully diligence any relevant files you are unfamiliar with.
 
 ### 1. Check Freshness
 
@@ -48,7 +48,7 @@ Once you have addressed all of the above, ensure that `pre-commit run --all-file
 
 ### 4. Run E2E Tests
 
-Run E2E tests headlessly with `cd e2e && npx playwright test`. **Never** use the `--headed` or `--ui` flags. If tests fail, report the failures but do not attempt to fix them — that is a separate task.
+Run E2E tests headlessly with `cd e2e && npx playwright test`. **Never** use the `--headed` or `--ui` flags. **All E2E tests must pass before finalization is complete.** If tests fail, investigate and fix them — even if the failure appears unrelated to the current change set. Do not dismiss failures as "preexisting" unless I explicitly say to skip them.
 
 ### 5. Output
 

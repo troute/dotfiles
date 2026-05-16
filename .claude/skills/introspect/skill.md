@@ -22,14 +22,17 @@ directory sorted by modification time and pick the most recently modified `.json
 
 ## Extracting Readable Content
 
-Use `~/.claude/scripts/extract-session.py` to strip the log down to user and assistant text:
+Use `~/.claude/scripts/extract-session.py` to strip the log down to reviewable content:
 
 ```bash
+# Conversation text (user + assistant messages, no thinking/tool details)
 python3 ~/.claude/scripts/extract-session.py <path-to-jsonl>
+
+# Failed tool calls only (tool name, input, error message)
+python3 ~/.claude/scripts/extract-session.py --errors <path-to-jsonl>
 ```
 
-This removes thinking blocks, tool call details, and file snapshots. Pipe it to a file if needed
-for length.
+Pipe output to files if needed for length. Run both extractions.
 
 ## What to Look For
 
@@ -41,6 +44,13 @@ Read through the extracted conversation and identify:
   be documented if they aren't already.
 - **Friction**: Moments where Claude went in circles, over-engineered, or misunderstood scope.
   Consider what guidance would have prevented it.
+- **Knowledge gaps**: Things Claude had to discover about the codebase mid-session that could have
+  been short-circuited by a line or two in the project-level CLAUDE.md. Examples: architectural
+  conventions, domain-specific terminology, relationships between modules, or gotchas that only
+  become apparent after reading the code.
+- **Failed tool calls**: Review the `--errors` output. Look for patterns — wrong table/column names
+  suggest missing schema knowledge, permission rejections suggest missing allowed-tools entries,
+  and repeated command failures suggest missing CLI conventions or environment setup docs.
 
 Cross-reference findings against the existing `~/.claude/CLAUDE.md` and the project-level `CLAUDE.md`
 to avoid suggesting things that are already documented.

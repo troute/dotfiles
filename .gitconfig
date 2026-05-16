@@ -2,8 +2,14 @@
 	name = Michael Andreas Troute
 	email = michael.troute@gmail.com
 	signingkey = /Users/mtroute/.ssh/id_ed25519.pub
+[fetch]
+	prune = true
 [push]
 	autoSetupRemote = true
+[rerere]
+	enabled = true
+[merge]
+	conflictstyle = zdiff3
 [gpg]
 	format = ssh
 [commit]

@@ -8,7 +8,10 @@ finform-init() {
   local uvicorn_port=$((7999 + n))
   local vite_port=$((5172 + n))
   local storybook_port=$((6005 + n))
-  local temporal_task_queue="finform_${n}"
+  local rag_mcp_port=$((3099 + n))
+  local hocuspocus_port=$((4170 + n))
+  local unoserver_port=$((2002 + n))
+  local temporal_task_queue_prefix="finform_${n}"
   local db_name="finform_${n}"
 
   [[ -d "$dir" ]] && { echo "$dir exists"; return 1; }
@@ -26,12 +29,18 @@ export STORYBOOK_PORT=$storybook_port
 export PC_PORT_NUM=$((8079 + n))
 export PC_SOCKET_PATH="/tmp/process-compose-finform-${n}.sock"
 export DATABASE_URL=postgresql://mtroute@localhost/$db_name
+export HOCUSPOCUS_PORT=$hocuspocus_port
+export UNOSERVER_PORT=$unoserver_port
+export RAG_MCP_PORT=$rag_mcp_port
+export RAG_MCP_URL=http://localhost:\${RAG_MCP_PORT}/mcp
+export DATA_ROOM_MCP_URL=http://localhost:\${RAG_MCP_PORT}/mcp
 EOF
   if [[ -f "$src/.env.local" && "$n" -ne 1 ]]; then
     sed -e "s/localhost:5173/localhost:$vite_port/g" \
         -e "s/localhost:8000/localhost:$uvicorn_port/g" \
         -e "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://mtroute@localhost/$db_name|" \
-        -e "s/^TEMPORAL_TASK_QUEUE=.*/TEMPORAL_TASK_QUEUE=$temporal_task_queue/" \
+        -e "s/^TEMPORAL_TASK_QUEUE_PREFIX=.*/TEMPORAL_TASK_QUEUE_PREFIX=$temporal_task_queue_prefix/" \
+        -e "s/^UNOSERVER_PORT=.*/UNOSERVER_PORT=$unoserver_port/" \
         "$src/.env.local" > .env.local
   fi
   python3.13 -m venv .venv &&

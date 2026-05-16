@@ -3,7 +3,7 @@ typeset -U path
 
 # PATH
 export PATH=$HOME/Library/Python/3.11/bin:$PATH
-export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
+export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 
 # History
@@ -12,6 +12,7 @@ HISTSIZE=100000
 SAVEHIST=100000
 setopt EXTENDED_HISTORY
 setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_IGNORE_SPACE
 setopt SHARE_HISTORY
 
 # Directory navigation
@@ -23,12 +24,38 @@ setopt PUSHD_IGNORE_DUPS
 bindkey -v
 bindkey '^R' history-incremental-search-backward
 bindkey '^?' backward-delete-char
+export KEYTIMEOUT=10
+
+# Vim text objects (ci", da(, vi[, etc.)
+autoload -U select-quoted select-bracketed
+zle -N select-quoted
+zle -N select-bracketed
+for m in visual viopp; do
+  for c in {a,i}{\',\",\`}; do
+    bindkey -M $m $c select-quoted
+  done
+  for c in {a,i}${(s..)^:-'()[]{}<>bB'}; do
+    bindkey -M $m $c select-bracketed
+  done
+done
+
+# Cursor shape: block for normal mode, beam for insert
+zle-keymap-select() {
+  case $KEYMAP in
+    vicmd)      print -n '\e[2 q' ;;
+    viins|main) print -n '\e[6 q' ;;
+  esac
+}
+zle -N zle-keymap-select
+zle-line-init() { print -n '\e[6 q' }
+zle -N zle-line-init
 
 # Aliases
 alias vim=nvim
 alias v=nvim
 alias g=git
 alias ll='eza -a --long --icons=auto'
+alias c=claude
 
 # Dotfiles management (bare git repo)
 alias d='dotfiles'
