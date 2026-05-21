@@ -4,12 +4,12 @@ ccusage() {
   .daily as $all_daily |
   (now | strflocaltime("%Y-%m-%d")) as $today_date |
   ($today_date | strptime("%Y-%m-%d") | mktime) as $today_ts |
-  ($all_daily[0].date | strptime("%Y-%m-%d") | mktime) as $first_date |
-  ($all_daily[-1].date | strptime("%Y-%m-%d") | mktime) as $last_data_ts |
+  ($all_daily[0].period | strptime("%Y-%m-%d") | mktime) as $first_date |
+  ($all_daily[-1].period | strptime("%Y-%m-%d") | mktime) as $last_data_ts |
   # Extend range to today if today is after last data date
   ([($last_data_ts), ($today_ts)] | max) as $last_date |
   (($last_date - $first_date) / 86400 + 1 | floor) as $calendar_days |
-  ($all_daily | map({key: .date, value: .totalCost}) | from_entries) as $costs |
+  ($all_daily | map({key: .period, value: .totalCost}) | from_entries) as $costs |
   ([range($calendar_days | floor)] | map(($first_date + (. * 86400)) | strftime("%Y-%m-%d"))) as $all_dates |
 
   ($all_dates | map($costs[.] // 0) | max) as $max_cost |

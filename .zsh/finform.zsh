@@ -11,6 +11,7 @@ finform-init() {
   local rag_mcp_port=$((3099 + n))
   local hocuspocus_port=$((4170 + n))
   local unoserver_port=$((2002 + n))
+  local s3mock_port=$((9089 + n))
   local temporal_task_queue_prefix="finform_${n}"
   local db_name="finform_${n}"
 
@@ -31,6 +32,12 @@ export PC_SOCKET_PATH="/tmp/process-compose-finform-${n}.sock"
 export DATABASE_URL=postgresql://mtroute@localhost/$db_name
 export HOCUSPOCUS_PORT=$hocuspocus_port
 export UNOSERVER_PORT=$unoserver_port
+export S3MOCK_PORT=$s3mock_port
+export AWS_ENDPOINT_URL=http://localhost:\${S3MOCK_PORT}
+export AWS_S3_BUCKET_NAME=finform-\${FINFORM_SLOT}
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_DEFAULT_REGION=us-east-1
 export RAG_MCP_PORT=$rag_mcp_port
 export RAG_MCP_URL=http://localhost:\${RAG_MCP_PORT}/mcp
 export DATA_ROOM_MCP_URL=http://localhost:\${RAG_MCP_PORT}/mcp
