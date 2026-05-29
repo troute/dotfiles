@@ -5,6 +5,14 @@
 I am a software engineer with a degree in computer science and many years of experience in industry. I am technically
 literate and familiar with coding best practices. I am opinionated about high quality code.
 
+## Dictation
+
+I dictate the vast majority of my inputs, so my messages often contain transcription errors — especially for variable
+names, file paths, and other technical references. See **DICTATION.md** for guidance on interpreting ambiguous input
+under the assumption that I may be dictating.
+
+@~/.claude/DICTATION.md
+
 ## General Guidelines
 
 The following are general guidelines that you should always obey when writing code, unless explicitly directed

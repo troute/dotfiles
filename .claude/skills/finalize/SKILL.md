@@ -1,7 +1,7 @@
 ---
 name: finalize
 description: Finalize a change set for submission.
-disable-model-invocation: true
+disable-model-invocation: false
 allowed-tools:
   - Bash(git *)
   - Bash(pre-commit run *)
@@ -40,21 +40,28 @@ The diff (see Inputs below) shows changes on this branch relative to the target 
 
 > Judicious commenting. Are all comments non-obvious to an experienced software engineer? Are atypical patterns, shortcuts, and hacks sufficiently explained? Are all comments concise? Do all comments use proper capitalization, punctuation, and grammar?
 
+> Documentation. Always check whether this change set necessitates edits to project documentation (CLAUDE.md, README.md, or other docs). Do any new patterns, commands, configuration, dependencies, or behaviors introduced here need to be reflected in documentation? If existing documentation is now stale or contradicted by these changes, update it. Make the necessary edits as part of finalization.
+
 > Leaving the codebase better than you found it. Is there any adjacent cruft that you can conveniently improve alongside the core change set?
 
-### 3. Run Pre-Commit
+### 3. Run the Simplify Skill
+
+Once you have addressed the review above, invoke the **Simplify** skill (via the Skill tool) to review the changed code for reuse, quality, and efficiency, and to fix any issues it surfaces. Fold its findings and resulting edits into the rest of finalization.
+
+### 4. Run Pre-Commit
 
 Once you have addressed all of the above, ensure that `pre-commit run --all-files` succeeds.
 
-### 4. Run E2E Tests
+### 5. Run E2E Tests
 
 Run E2E tests headlessly with `cd e2e && npx playwright test`. **Never** use the `--headed` or `--ui` flags. **All E2E tests must pass before finalization is complete.** If tests fail, investigate and fix them — even if the failure appears unrelated to the current change set. Do not dismiss failures as "preexisting" unless I explicitly say to skip them.
 
-### 5. Output
+### 6. Output
 
 Wait until all steps above are complete, then produce a single consolidated report covering:
 - Freshness status
 - Review findings (organized by the categories above — only mention categories where you have something to say)
+- Simplify skill results (notable findings and any edits made)
 - Pre-commit results
 - E2E test results
 - A conventional commit message, in the style matching that of the most recent commits on the target branch (see Inputs below for recent commit log)
