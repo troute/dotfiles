@@ -17,13 +17,16 @@
 [alias]
 	a = add
 	b = branch
-	c = commit
+    c = commit
+    cnv = commit --no-verify
 	co = checkout
 	d = diff
 	f = fetch
 	l = log
 	p = pull
 	ps = push
+    psnv = push --no-verify
 	r = rebase
 	s = status
+	m = merge
 	st = stash

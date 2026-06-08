@@ -65,6 +65,7 @@
   "skipDangerousModePermissionPrompt": true,
   "editorMode": "vim",
   "verbose": true,
+  "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "agentPushNotifEnabled": true
 }

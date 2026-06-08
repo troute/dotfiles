@@ -8,7 +8,6 @@ finform-init() {
   local uvicorn_port=$((7999 + n))
   local vite_port=$((5172 + n))
   local storybook_port=$((6005 + n))
-  local rag_mcp_port=$((3099 + n))
   local hocuspocus_port=$((4170 + n))
   local unoserver_port=$((2002 + n))
   local s3mock_port=$((9089 + n))
@@ -38,9 +37,6 @@ export AWS_S3_BUCKET_NAME=finform-\${FINFORM_SLOT}
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
 export AWS_DEFAULT_REGION=us-east-1
-export RAG_MCP_PORT=$rag_mcp_port
-export RAG_MCP_URL=http://localhost:\${RAG_MCP_PORT}/mcp
-export DATA_ROOM_MCP_URL=http://localhost:\${RAG_MCP_PORT}/mcp
 EOF
   if [[ -f "$src/.env.local" && "$n" -ne 1 ]]; then
     sed -e "s/localhost:5173/localhost:$vite_port/g" \
@@ -50,28 +46,25 @@ EOF
         -e "s/^UNOSERVER_PORT=.*/UNOSERVER_PORT=$unoserver_port/" \
         "$src/.env.local" > .env.local
   fi
-  python3.13 -m venv .venv &&
-  .venv/bin/pip install -e ".[dev,test]" &&
+  uv sync &&
+  alembic upgrade head &&
   (cd frontend && npm install) &&
   direnv allow &&
-  pre-commit install
+  pre-commit install &&
+  pre-commit install --hook-type pre-push
 }
 alias finit='finform-init'
-
-# Ensure the shared Temporal dev server is running.
-# Starts it in the current pane (blocking) if not running elsewhere.
-ensure-temporal-dev-server() {
-  if lsof -i :7233 -sTCP:LISTEN &>/dev/null; then
-    return 0
-  fi
-  temporal server start-dev --db-filename /tmp/finform-temporal.db
-}
 
 # Prefetch shared state for worktree checks.
 # Sets listening, claude_cwds, tmux_windows in caller scope.
 _finform-prefetch() {
   listening=$(netstat -an -p tcp 2>/dev/null | grep LISTEN)
-  claude_cwds=$(lsof -c claude -a -d cwd -Fn 2>/dev/null | grep '^n' | sed 's/^n//')
+  # Only consider user-facing claude CLI sessions; exclude the daemon and its
+  # pre-warmed bg-spare PTY workers, which retain cwd from where they were spawned.
+  local pids
+  pids=$(ps -ax -o pid,command 2>/dev/null | awk '/[c]laude/ && !/--bg-/ && !/daemon run/ {print $1}' | paste -sd, -)
+  claude_cwds=""
+  [[ -n "$pids" ]] && claude_cwds=$(lsof -p "$pids" -a -d cwd -Fn 2>/dev/null | grep '^n' | sed 's/^n//')
   tmux_windows=""
   if [[ -n "$TMUX" ]]; then
     tmux_windows=$(tmux list-windows -F '#{window_name}' 2>/dev/null)
@@ -95,68 +88,6 @@ _finform-is-idle() {
   echo "$listening" | grep -q "\.${storybook_port} " && return 1
   return 0
 }
-
-# Legacy 7-pane tmux layout (kept until process-compose is validated)
-finform-start-legacy() {
-  local -a opt_storybook
-  zparseopts -D -E -- s=opt_storybook -storybook=opt_storybook
-
-  local n=${1:-1}
-  [[ "$n" =~ ^([1-9]|1[0-2])$ ]] || { echo "Slot must be 1-12"; return 1; }
-
-  local dir="$HOME/dev/finform-worktrees/$n"
-
-  if [[ ! -d "$dir" ]]; then
-    echo "Directory $dir does not exist"
-    return 1
-  fi
-
-  if [[ -z "$TMUX" ]]; then
-    echo "Not in a tmux session"
-    return 1
-  fi
-
-  cd "$dir"
-
-  local is_orphan=false
-  local changes=$(git -C "$dir" status --porcelain 2>/dev/null)
-  if [[ -n "$changes" ]]; then
-    local tmux_windows=$(tmux list-windows -F '#{window_name}' 2>/dev/null)
-    if ! echo "$tmux_windows" | grep -q "^f-${n}\b"; then
-      is_orphan=true
-    fi
-  fi
-
-  tmux rename-window "f-$n [${VITE_PORT:-???}]"
-
-  tmux split-window -h -c "$dir"
-  tmux split-window -v -c "$dir" -t 1
-  tmux split-window -v -c "$dir" -t 2
-  tmux split-window -h -c "$dir" -t 2
-  tmux split-window -h -c "$dir" -t 4
-  tmux split-window -v -c "$dir" -t 5
-
-  tmux send-keys -t 2 "uv sync && python -m uvicorn backend.main:app --reload" Enter
-  tmux send-keys -t 3 "uv sync && python -m backend.temporal.worker" Enter
-  tmux send-keys -t 4 "cd frontend && npm install && npm run dev" Enter
-
-  if (( ${#opt_storybook} )); then
-    tmux send-keys -t 5 "cd frontend && npm run storybook" Enter
-  else
-    tmux send-keys -t 5 "exit" Enter
-  fi
-
-  tmux send-keys -t 6 "lsof -i :7233 -sTCP:LISTEN &>/dev/null && exit || temporal server start-dev --db-filename /tmp/finform-temporal.db" Enter
-
-  tmux select-pane -t 0
-  if $is_orphan; then
-    echo "Worktree $n has uncommitted changes with no active session."
-    read -q "?Resume previous Claude session? [y/N] " && local claude_flags="-c"
-    echo
-  fi
-  claude ${claude_flags:-}
-}
-alias fsl='finform-start-legacy'
 
 # Finform tmux layout (3-pane, services managed by process-compose):
 #
@@ -234,6 +165,7 @@ finform-start() {
     read -q "?Resume previous Claude session? [y/N] " && local claude_flags="-c"
     echo
   fi
+  eval "$(direnv export zsh)"
   claude ${claude_flags:-}
 }
 alias fstart='finform-start'

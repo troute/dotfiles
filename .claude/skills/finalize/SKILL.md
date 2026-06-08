@@ -24,7 +24,7 @@ The diff (see Inputs below) shows changes on this branch relative to the target 
 
 > Completeness. Have we done everything we set out to do? If there is a Linear ticket associated with the current working branch (look for fin-{n} branch prefixing), are we sure that we have met all of the stated and implied requirements (given our best understanding of the state of discussion in the ticket and its comments)? If there are any planning documents associated with this change, have we met their requirements (unless no longer relevant due to changes in our understanding)?
 
-> Simplicity. Is our solution maximally simple while delivering on the original desired behavior?
+> Simplicity. A maximally simple codebase that still delivers the required behavior is one of my chief priorities — treat this as a first-class concern, not a polish item. Be aggressive in considering how the implementation could be simpler, including changes that go beyond the strict bounds of the requested work when they would result in a net simpler codebase. Proactively look for dead code, unnecessary abstractions, redundant indirection, and overgeneralized interfaces, and remove them.
 
 > Interface design. Are class, method/function, component, and service interfaces minimal, coherent, and well designed? Are they self documenting, via both clear naming and intuitiveness? Do they allow for future extension? Do they lend themselves to easy testing, inspection, and maintenance?
 
@@ -40,13 +40,13 @@ The diff (see Inputs below) shows changes on this branch relative to the target 
 
 > Judicious commenting. Are all comments non-obvious to an experienced software engineer? Are atypical patterns, shortcuts, and hacks sufficiently explained? Are all comments concise? Do all comments use proper capitalization, punctuation, and grammar?
 
-> Documentation. Always check whether this change set necessitates edits to project documentation (CLAUDE.md, README.md, or other docs). Do any new patterns, commands, configuration, dependencies, or behaviors introduced here need to be reflected in documentation? If existing documentation is now stale or contradicted by these changes, update it. Make the necessary edits as part of finalization.
+> Documentation. Check whether this change set necessitates edits to project documentation (CLAUDE.md, README.md, or other top-level docs). These docs are intentionally parsimonious broad overviews — any edit must clearly earn its place, and must not leave the document feeling unbalanced (e.g., one section dramatically more detailed than its siblings). Prefer the smallest change that captures what's genuinely necessary; if the change set introduces no broadly-relevant new patterns, commands, or behaviors, no edit is needed.
 
 > Leaving the codebase better than you found it. Is there any adjacent cruft that you can conveniently improve alongside the core change set?
 
-### 3. Run the Simplify Skill
+### 3. Run the Code Review Skill
 
-Once you have addressed the review above, invoke the **Simplify** skill (via the Skill tool) to review the changed code for reuse, quality, and efficiency, and to fix any issues it surfaces. Fold its findings and resulting edits into the rest of finalization.
+By default, invoke the **Code Review** skill (via the Skill tool) and fold its findings and edits into finalization. Skip it only if a code review was already performed and no material changes have been made since. Note your decision briefly in the output.
 
 ### 4. Run Pre-Commit
 
@@ -61,7 +61,7 @@ Run E2E tests headlessly with `cd e2e && npx playwright test`. **Never** use the
 Wait until all steps above are complete, then produce a single consolidated report covering:
 - Freshness status
 - Review findings (organized by the categories above — only mention categories where you have something to say)
-- Simplify skill results (notable findings and any edits made)
+- Code Review results (or a brief note if skipped)
 - Pre-commit results
 - E2E test results
 - A conventional commit message, in the style matching that of the most recent commits on the target branch (see Inputs below for recent commit log)
