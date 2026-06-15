@@ -11,10 +11,26 @@ Write a concise markdown document capturing work that we've identified but won't
 descriptor (e.g., `defer-sign-normalization.md`). Derive the subject from `$ARGUMENTS` if provided,
 otherwise from the current conversation context.
 
+**Metadata block**: Immediately below the title, include a compact block with the date
+written and the current commit SHAs of `origin/main` and `origin/staging`. Run `git fetch`
+first so the SHAs reflect the actual remote tips, then:
+
+```bash
+date +%Y-%m-%d
+git rev-parse --short origin/main 2>/dev/null
+git rev-parse --short origin/staging 2>/dev/null
+```
+
+Omit any line whose remote branch doesn't exist in this repo (don't fabricate SHAs).
+
 **Structure**:
 
 ```markdown
 # {Title}
+
+- **Written**: YYYY-MM-DD
+- **origin/main**: `abc1234`
+- **origin/staging**: `def5678`
 
 ## Problem
 What's wrong or missing, in 2-3 sentences.

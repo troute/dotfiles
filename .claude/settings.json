@@ -1,4 +1,7 @@
 {
+  "env": {
+    "ZDOTDIR": "/Users/mtroute/.claude/zsh"
+  },
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -61,14 +64,11 @@
       }
     ]
   },
-  "env": {
-    "ZDOTDIR": "/Users/mtroute/.claude/zsh"
-  },
   "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true,
   "editorMode": "vim",
   "verbose": true,
+  "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true,
-  "agentPushNotifEnabled": true
+  "voiceEnabled": true
 }
