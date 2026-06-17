@@ -3,13 +3,9 @@
 Personal macOS dotfiles, managed as a bare git repository.
 Git dir at `~/.dotfiles/`, work tree at `$HOME`.
 
-## New macOS bootstrap
+## Bootstrap
 
-### 1. macOS basics
-
-Apple ID + Software Update.
-
-### 2. Xcode Command Line Tools
+### 1. Xcode Command Line Tools
 
 ```bash
 xcode-select --install
@@ -17,40 +13,33 @@ xcode-select --install
 
 Click through GUI installer (~5–15 min).
 
-### 3. Homebrew
+### 2. Homebrew
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-Run the two `eval` lines from the post-install hints to add `/opt/homebrew/bin` to PATH.
+Ignore the post-install hints about adding brew to PATH — the tracked `.zprofile`
+already handles it. brew will land on PATH after step 3's `exec zsh`.
 
-### 4. Clone the bare dotfiles repo
+### 3. Clone the bare dotfiles repo
 
-HTTPS, not SSH — no key uploaded yet. The backup dance handles macOS's default `.zshrc`
-and any other conflicts.
+HTTPS, not SSH — no key uploaded yet.
 
 ```bash
 git clone --bare https://github.com/troute/dotfiles.git $HOME/.dotfiles
-alias dotfiles='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-
-mkdir -p $HOME/.dotfiles-backup
-dotfiles checkout 2>&1 | grep -E "^\s+\." | awk '{print $1}' \
-  | xargs -I{} mv {} $HOME/.dotfiles-backup/{} 2>/dev/null
-
-dotfiles checkout
-dotfiles config status.showUntrackedFiles no
-
+git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME checkout
+git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME config status.showUntrackedFiles no
 exec zsh
 ```
 
-### 5. Install from the Brewfile
+### 4. Install from the Brewfile
 
 ```bash
 brew bundle --file=~/.Brewfile
 ```
 
-### 6. Touch ID for sudo
+### 5. Touch ID for sudo
 
 `pam_reattach` must load before `pam_tid` for Touch ID to work inside tmux.
 
@@ -61,18 +50,11 @@ auth       sufficient     pam_tid.so
 EOF
 ```
 
-### 7. Docker Desktop first launch
+### 6. Docker Desktop first launch
 
 Open `Docker.app` once to accept terms.
 
-### 8. Global tools not in the Brewfile
-
-```bash
-uv tool install pylint
-npm install -g @posthog/cli
-```
-
-### 9. Auth
+### 7. Auth
 
 ```bash
 gh auth login
@@ -90,7 +72,7 @@ ssh-keygen -t ed25519
 gh ssh-key add ~/.ssh/id_ed25519.pub
 ```
 
-### 10. Apps not in the Brewfile
+### 8. Apps not in the Brewfile
 
 Terminal, browser, 1Password, Slack, etc. — install manually.
 
