@@ -47,6 +47,10 @@ cask "gcloud-cli"
 # Fonts
 cask "font-roboto-mono-nerd-font"
 
+# PAM module so Touch ID for sudo works inside tmux
+# (After install, add to /etc/pam.d/sudo_local — see README.md step 6)
+brew "pam-reattach"
+
 # CLIs distributed as casks
 cask "claude-code"
 cask "ngrok"
