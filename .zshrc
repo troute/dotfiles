@@ -2,7 +2,6 @@
 typeset -U path
 
 # PATH
-export PATH=$HOME/Library/Python/3.11/bin:$PATH
 export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 
 # History
