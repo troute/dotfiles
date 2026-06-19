@@ -36,7 +36,7 @@ changes to already-tracked files. To add a new file, explicitly `dotfiles add <p
 | Claude Code | `~/.claude/CLAUDE.md`, `STYLE_PYTHON.md`, `STYLE_TYPESCRIPT.md`, `TERMINAL_USE.md`, `settings.json`, `settings.local.json`, `skills/*/skill.md`, `scripts/extract-session.py` |
 | Python tools | `~/.ruff.toml`, `~/.pdbrc.py` |
 | Starship | `~/.config/starship.toml` |
-| Homebrew | `~/.Brewfile` (run `brew bundle --file=~/.Brewfile` to install on a new machine) |
+| Homebrew | `~/.Brewfile` (run `brew bundle --global` to install on a new machine) |
 
 ## Editing Files
 

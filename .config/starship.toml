@@ -1,5 +1,5 @@
 # Starship Configuration
-# Minimal prompt with execution time, truncated paths, and Nerd Font icons
+# Minimal prompt with execution time and truncated paths
 
 # Overall prompt format
 format = """

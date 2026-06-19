@@ -1,5 +1,5 @@
 # ~/.Brewfile — Homebrew dependencies for new-laptop bootstrap.
-# After installing Homebrew, run: brew bundle --file=~/.Brewfile
+# After installing Homebrew, run: brew bundle --global
 
 tap "f1bonacc1/tap"
 
@@ -43,9 +43,6 @@ brew "pgvector"
 brew "temporal", restart_service: :changed
 brew "railway"
 cask "gcloud-cli"
-
-# Fonts
-cask "font-roboto-mono-nerd-font"
 
 # PAM module so Touch ID for sudo works inside tmux
 # (After install, add to /etc/pam.d/sudo_local — see README.md step 5)

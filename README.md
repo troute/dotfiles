@@ -19,8 +19,8 @@ Click through GUI installer (~5–15 min).
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-Ignore the post-install hints about adding brew to PATH — the tracked `.zprofile`
-already handles it. brew will land on PATH after step 3's `exec zsh`.
+Ignore the post-install hints — the tracked `.zprofile` (installed in step 3) already
+runs the same brew shellenv eval, and step 3's `exec zsh -l` will source it.
 
 ### 3. Clone the bare dotfiles repo
 
@@ -30,13 +30,14 @@ HTTPS, not SSH — no key uploaded yet.
 git clone --bare https://github.com/troute/dotfiles.git $HOME/.dotfiles
 git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME checkout
 git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME config status.showUntrackedFiles no
-exec zsh
+exec zsh -l
 ```
 
 ### 4. Install from the Brewfile
 
 ```bash
-brew bundle --file=~/.Brewfile
+brew trust f1bonacc1/tap
+brew bundle --global
 ```
 
 ### 5. Touch ID for sudo
@@ -92,5 +93,5 @@ adding new tracked files, etc.).
 | Claude Code | `~/.claude/CLAUDE.md`, `STYLE_PYTHON.md`, `STYLE_TYPESCRIPT.md`, `TERMINAL_USE.md`, `settings.json`, `settings.local.json`, `skills/*/skill.md`, `scripts/extract-session.py` |
 | Python | `~/.ruff.toml`, `~/.pdbrc.py` |
 | Starship | `~/.config/starship.toml` |
-| Homebrew | `~/.Brewfile` |
+| Homebrew | `~/.Brewfile` (run `brew bundle --global` to install) |
 | Docs | `~/README.md` |

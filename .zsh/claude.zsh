@@ -1,6 +1,6 @@
 # Claude Code usage with sparklines
 ccusage() {
-  (cd ~/dev/finform-worktrees/1/frontend && npx ccusage daily --json | jq -r '
+  (cd ~/dev/finform-worktrees/1/frontend && yes | npx ccusage daily --json | jq -r '
   .daily as $all_daily |
   (now | strflocaltime("%Y-%m-%d")) as $today_date |
   ($today_date | strptime("%Y-%m-%d") | mktime) as $today_ts |
