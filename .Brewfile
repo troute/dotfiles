@@ -12,7 +12,7 @@ brew "zsh-syntax-highlighting"
 # Terminal multiplexer and editor
 brew "tmux"
 brew "neovim"
-brew "tree-sitter-cli"  # nvim-treesitter (main branch) compiles parsers via this CLI
+brew "stylua" # Lua formatter used by conform.nvim
 
 # CLI utilities
 brew "eza"
@@ -60,6 +60,7 @@ cask "linear"
 cask "wispr-flow"
 cask "tailscale-app"
 cask "zoom"
+cask "stats"
 
 # Mac App Store (mas)
 brew "mas"
