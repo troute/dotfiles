@@ -21,6 +21,8 @@ return {
 					"jsonls",
 					"lua_ls",
 				},
+				-- Servers are enabled explicitly via vim.lsp.enable below (single source of truth)
+				automatic_enable = false,
 			})
 		end,
 		dependencies = {
@@ -60,7 +62,7 @@ return {
 
 			-- Global LSP config (applies to all servers)
 			vim.lsp.config("*", {
-				capabilities = require("cmp_nvim_lsp").default_capabilities(),
+				capabilities = require("blink.cmp").get_lsp_capabilities(),
 			})
 
 			-- Server-specific configs
@@ -133,8 +135,7 @@ return {
 		dependencies = {
 			"williamboman/mason.nvim",
 			"williamboman/mason-lspconfig.nvim",
-			"hrsh7th/nvim-cmp",
-			"hrsh7th/cmp-nvim-lsp",
+			"saghen/blink.cmp",
 		},
 	},
 }

@@ -1,24 +1,23 @@
 return {
 	"nvim-treesitter/nvim-treesitter",
-	branch = "main",
-	lazy = false,
+	branch = "master", -- pin explicitly; the default branch is now the unstable `main` rewrite
 	build = ":TSUpdate",
 	config = function()
-		require("nvim-treesitter").install({
-			"lua",
-			"javascript",
-			"typescript",
-			"tsx",
-			"html",
-			"python",
-			"markdown",
-			"markdown_inline",
-		})
-
-		vim.api.nvim_create_autocmd("FileType", {
-			callback = function()
-				pcall(vim.treesitter.start)
-			end,
+		require("nvim-treesitter.configs").setup({
+			ensure_installed = {
+				"lua",
+				"javascript",
+				"typescript",
+				"tsx",
+				"html",
+				"css",
+				"python",
+				"markdown",
+				"markdown_inline",
+			},
+			highlight = {
+				enable = true,
+			},
 		})
 	end,
 }
