@@ -1,5 +1,4 @@
-# ~/.Brewfile — Homebrew dependencies for new-laptop bootstrap.
-# After installing Homebrew, run: brew bundle --global
+# ~/.Brewfile — usage: brew bundle --global/-g
 
 tap "f1bonacc1/tap"
 
@@ -9,10 +8,13 @@ brew "direnv"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 
-# Terminal multiplexer and editor
+# Terminal multiplexer
 brew "tmux"
+
+# NeoVim and dependencies
 brew "neovim"
-brew "stylua" # Lua formatter used by conform.nvim
+brew "stylua"
+brew "tree-sitter-cli"
 
 # CLI utilities
 brew "eza"
@@ -28,7 +30,7 @@ brew "mkcert"
 brew "fnm"
 brew "uv"
 
-# Docker (Desktop provides daemon + CLI; formula adds shell completion)
+# Docker
 brew "docker-completion"
 cask "docker-desktop"
 
@@ -54,6 +56,7 @@ cask "ngrok"
 
 # GUI applications
 cask "1password"
+cask "google-chrome"
 cask "brave-browser"
 cask "ghostty"
 cask "linear"
@@ -61,6 +64,7 @@ cask "wispr-flow"
 cask "tailscale-app"
 cask "zoom"
 cask "stats"
+cask "libreoffice"
 
 # Mac App Store (mas)
 brew "mas"
