@@ -1,3 +1,25 @@
+# Point a worktree's Claude Code auto-memory dir at the shared finform store, so
+# memories written in any slot are visible in all of them. Idempotent; migrates a
+# pre-existing real memory dir into the store before replacing it with the symlink.
+# Slugs start with '-', so operate via the resolved path, never a bare glob.
+finform-link-memory() {
+  local root="${1:-$PWD}"; root="${root:a}"  # absolutize but do NOT resolve symlinks (match Claude's literal slug)
+  local shared="$HOME/.claude/finform-memory"
+  local memdir="$HOME/.claude/projects/${root//\//-}/memory"
+  mkdir -p "$shared" "${memdir:h}"
+  if [[ -L "$memdir" ]]; then
+    [[ "$(readlink "$memdir")" == "$shared" ]] && return 0
+    rm "$memdir"
+  elif [[ -d "$memdir" ]]; then
+    local f
+    for f in "$memdir"/*.md(N); do
+      [[ "${f:t}" == "MEMORY.md" ]] || cp -n "$f" "$shared/"
+    done
+    rm -rf "$memdir"
+  fi
+  ln -s "$shared" "$memdir"
+}
+
 # Create new finform directory with full setup
 finform-init() {
   local n=${1:?Usage: finform-init <1-12>}
@@ -19,6 +41,7 @@ finform-init() {
   git clone git@github.com:troute/finform.git "$dir" &&
   cd "$dir" &&
   createdb "$db_name" 2>/dev/null
+  finform-link-memory "$dir"
   cat > .envrc <<EOF
 source_up
 source .venv/bin/activate
@@ -89,6 +112,84 @@ _finform-is-idle() {
   return 0
 }
 
+# Emit one JSON object per worktree (JSONL) with the facts the
+# finform-prune-worktrees skill needs to triage each slot. Reuses
+# _finform-prefetch for shared state; gathers docker containers once up front.
+# Fetches origin/staging in every clone first (parallel, best-effort) so
+# divergence is measured against the real remote, not each clone's stale local
+# `staging` — clones drift tens of commits behind and badly mislead otherwise.
+# NOTE: callers from a non-interactive shell must `source ~/.zsh/finform.zsh`
+# first, since compinit strips the private helpers in that context.
+_finform-prune-scan() {
+  setopt local_options null_glob
+  local base=~/dev/finform-worktrees
+  local listening claude_cwds tmux_windows
+  _finform-prefetch
+  local docker_names=$(docker ps --format '{{.Names}}' 2>/dev/null)
+
+  local n dir branch changes dirty dirty_count ahead behind
+
+  # Refresh origin/staging everywhere in parallel (best-effort; skips if offline).
+  for n in {1..12}; do
+    [[ -d "$base/$n/.git" ]] && \
+      git -C "$base/$n" fetch --quiet origin '+refs/heads/staging:refs/remotes/origin/staging' 2>/dev/null &
+  done
+  wait
+  local uvicorn_port vite_port storybook_port hocuspocus_port
+  local has_api has_vite has_storybook has_hocus has_socket has_s3 has_uno
+  local has_tmux tmux_name has_claude proj live bytes lines
+
+  for n in {1..12}; do
+    dir="$base/$n"
+    if [[ ! -d "$dir/.git" ]]; then
+      printf '{"slot":%d,"exists":false}\n' "$n"
+      continue
+    fi
+
+    branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    changes=$(git -C "$dir" status --porcelain 2>/dev/null)
+    if [[ -n "$changes" ]]; then
+      dirty=true; dirty_count=$(echo "$changes" | grep -c .)
+    else
+      dirty=false; dirty_count=0
+    fi
+    ahead=$(git -C "$dir" rev-list --count origin/staging..HEAD 2>/dev/null); ahead=${ahead:-0}
+    behind=$(git -C "$dir" rev-list --count HEAD..origin/staging 2>/dev/null); behind=${behind:-0}
+
+    uvicorn_port=$((7999 + n)); vite_port=$((5172 + n))
+    storybook_port=$((6005 + n)); hocuspocus_port=$((4170 + n))
+    has_api=false;       echo "$listening" | grep -q "\.${uvicorn_port} " && has_api=true
+    has_vite=false;      echo "$listening" | grep -q "\.${vite_port} " && has_vite=true
+    has_storybook=false; echo "$listening" | grep -q "\.${storybook_port} " && has_storybook=true
+    has_hocus=false;     echo "$listening" | grep -q "\.${hocuspocus_port} " && has_hocus=true
+    has_socket=false;    [[ -S "/tmp/process-compose-finform-${n}.sock" ]] && has_socket=true
+    has_s3=false;        echo "$docker_names" | grep -qx "s3mock-finform-${n}" && has_s3=true
+    has_uno=false;       echo "$docker_names" | grep -qx "unoserver-finform-${n}" && has_uno=true
+
+    has_tmux=false; tmux_name=""
+    if [[ -n "$tmux_windows" ]]; then
+      tmux_name=$(echo "$tmux_windows" | grep "^f-${n}\b" | head -1)
+      [[ -n "$tmux_name" ]] && has_tmux=true
+    fi
+    has_claude=false
+    echo "$claude_cwds" | grep -qx "$dir" && has_claude=true
+
+    proj="$HOME/.claude/projects/-Users-mtroute-dev-finform-worktrees-${n}"
+    local -a transcripts=( "$proj"/*.jsonl )
+    live=""; (( ${#transcripts} )) && live=$(ls -t "${transcripts[@]}" | head -1)
+    bytes=0; lines=0
+    if [[ -n "$live" ]]; then
+      bytes=$(wc -c < "$live" 2>/dev/null | tr -d ' ')
+      lines=$(wc -l < "$live" 2>/dev/null | tr -d ' ')
+    fi
+
+    printf '{"slot":%d,"exists":true,"branch":"%s","dirty":%s,"dirty_count":%d,"ahead":%d,"behind":%d,"services":{"api":%s,"vite":%s,"storybook":%s,"hocuspocus":%s,"pc_socket":%s,"s3mock":%s,"unoserver":%s},"has_tmux":%s,"tmux_name":"%s","has_claude":%s,"live_transcript":"%s","transcript_bytes":%d,"transcript_lines":%d}\n' \
+      "$n" "$branch" "$dirty" "$dirty_count" "$ahead" "$behind" \
+      "$has_api" "$has_vite" "$has_storybook" "$has_hocus" "$has_socket" "$has_s3" "$has_uno" \
+      "$has_tmux" "${tmux_name//\"/}" "$has_claude" "$live" "$bytes" "$lines"
+  done
+}
+
 # Finform tmux layout (3-pane, services managed by process-compose):
 #
 # +------------------+------------------+
@@ -144,6 +245,15 @@ finform-start() {
     if ! echo "$tmux_windows" | grep -q "^f-${n}\b"; then
       is_orphan=true
     fi
+  fi
+
+  # Pull latest before starting services/claude, but only when it's safe to do
+  # so unattended: clean worktree on staging. A dirty or non-staging worktree is
+  # left untouched to avoid conflicts (the orphan-resume path handles dirty state).
+  local branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [[ -z "$changes" && "$branch" == "staging" ]]; then
+    echo "Pulling latest on staging..."
+    git -C "$dir" pull --ff-only || echo "Pull failed; continuing with current checkout."
   fi
 
   tmux rename-window "f-$n [${VITE_PORT:-???}]"
@@ -263,6 +373,54 @@ finform-status() {
 }
 alias fstatus='finform-status'
 alias fst='finform-status'
+
+# Full teardown of a worktree's running state: process-compose (which also stops
+# its per-slot docker s3mock/unoserver via their shutdown hooks), any Claude
+# session rooted in the worktree, and the tmux window. The working tree is left
+# untouched — uncommitted changes stay on disk. With no arg, self-targets the
+# current worktree via $FINFORM_SLOT.
+# Usage: finform-kill [1-12]
+finform-kill() {
+  local n=${1:-$FINFORM_SLOT}
+  if [[ -z "$n" ]]; then
+    echo "Usage: finform-kill <1-12> (or run inside a worktree to self-target)"
+    return 1
+  fi
+  [[ "$n" =~ ^([1-9]|1[0-2])$ ]] || { echo "Slot must be 1-12"; return 1; }
+
+  local dir="$HOME/dev/finform-worktrees/$n"
+  local socket="/tmp/process-compose-finform-${n}.sock"
+
+  # 1. Stop process-compose — also stops its docker containers via shutdown hooks.
+  if [[ -S "$socket" ]]; then
+    echo "Stopping process-compose (slot $n)..."
+    process-compose -u "$socket" down 2>/dev/null
+  fi
+
+  # 2. Belt-and-suspenders: stop per-slot docker containers if they linger
+  #    (they run with --rm, so stopping removes them).
+  docker stop "s3mock-finform-${n}" "unoserver-finform-${n}" 2>/dev/null
+
+  # 3. Kill any Claude session whose cwd is this worktree (covers sessions
+  #    not running inside the tmux window). Excludes the daemon and bg workers.
+  local pids pid cwd
+  pids=$(ps -ax -o pid,command 2>/dev/null | awk '/[c]laude/ && !/--bg-/ && !/daemon run/ {print $1}')
+  for pid in ${(f)pids}; do
+    cwd=$(lsof -p "$pid" -a -d cwd -Fn 2>/dev/null | grep '^n' | sed 's/^n//')
+    [[ "$cwd" == "$dir" ]] && { echo "Killing Claude session (pid $pid)..."; kill "$pid" 2>/dev/null; }
+  done
+
+  # 4. Close the tmux window (also kills the Claude pane). Runs last: in a
+  #    self-teardown this terminates the calling shell.
+  local win
+  win=$(tmux list-windows -a -F '#{window_id} #{window_name}' 2>/dev/null \
+        | awk -v n="$n" '$2 ~ "^f-"n"($|[^0-9])" {print $1; exit}')
+  if [[ -n "$win" ]]; then
+    echo "Closing tmux window $win (slot $n)..."
+    tmux kill-window -t "$win"
+  fi
+}
+alias fkill='finform-kill'
 
 # Pull all clean finform worktrees on staging
 # Usage: finform-pull

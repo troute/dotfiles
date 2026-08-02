@@ -65,6 +65,7 @@ cask "tailscale-app"
 cask "zoom"
 cask "stats"
 cask "libreoffice"
+cask "notion"
 
 # Mac App Store (mas)
 brew "mas"

@@ -4,10 +4,24 @@
 Usage:
     python3 extract-session.py <path-to-jsonl>            # conversation text only
     python3 extract-session.py --errors <path-to-jsonl>   # failed tool calls only
+
+Pass '-' as the path to read JSONL from stdin. This lets callers bound the work
+by line-slicing a huge transcript first, e.g.:
+    tail -n 160 big.jsonl | python3 extract-session.py -
 """
 
+import contextlib
 import json
 import sys
+
+
+@contextlib.contextmanager
+def open_source(path):
+    if path == '-':
+        yield sys.stdin
+    else:
+        with open(path) as f:
+            yield f
 
 
 def extract_text(content):
@@ -26,7 +40,7 @@ def extract_text(content):
 
 
 def extract_conversation(path):
-    with open(path) as f:
+    with open_source(path) as f:
         for line in f:
             try:
                 obj = json.loads(line)
@@ -53,7 +67,7 @@ def extract_conversation(path):
 def extract_errors(path):
     tool_calls = {}
 
-    with open(path) as f:
+    with open_source(path) as f:
         for line in f:
             try:
                 obj = json.loads(line)
