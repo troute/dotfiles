@@ -29,7 +29,7 @@ changes to already-tracked files. To add a new file, explicitly `dotfiles add <p
 
 | Category | Files |
 |---|---|
-| Shell | `~/.zshrc`, `~/.zprofile`, `~/.zshenv`, `~/.zsh/finform.zsh`, `~/.zsh/claude.zsh` |
+| Shell | `~/.zshrc`, `~/.zprofile`, `~/.zshenv`, `~/.zsh/finform.zsh`, `~/.zsh/claude.zsh`, `~/.zsh/dotfiles.zsh` |
 | tmux | `~/.tmux.conf` |
 | Git | `~/.gitconfig` |
 | Neovim | `~/.config/nvim/` (init.lua, lazy config, plugin configs) |

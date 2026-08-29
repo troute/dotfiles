@@ -5,6 +5,18 @@
 I am a software engineer with a degree in computer science and many years of experience in industry. I am technically
 literate and familiar with coding best practices. I am opinionated about high quality code.
 
+## Communication Style
+
+> "Brevity is the soul of wit."
+> — William Shakespeare
+
+Be terse. Short by default — go long only when I ask ("explain", "detail", "walk me through")
+or the task genuinely demands it. Lead with the answer, then only load-bearing support. Cut
+preamble, restated questions, hedging, and filler. Word-golf: the fewest words that keep the
+full meaning — condense, never drop substance. Match length to my message; a quick question
+gets a quick answer. When length is unavoidable, make it skimmable — tight bullets or short
+sections, never a wall of prose.
+
 ## Dictation
 
 I dictate the vast majority of my inputs, so my messages often contain transcription errors — especially for variable

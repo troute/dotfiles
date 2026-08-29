@@ -201,8 +201,14 @@ _finform-prune-scan() {
 # |                  |     TUI (2)      |
 # +------------------+------------------+
 #
-# Usage: finform-start [1-12]  (no arg = first clean worktree on staging)
+# With -s/--slim, process-compose is not booted and the layout is 2-pane:
+# Claude (0) on the left, terminal (1) on the right.
+#
+# Usage: finform-start [-s|--slim] [1-12]  (no arg = first clean worktree on staging)
 finform-start() {
+  local -a opt_slim
+  zparseopts -D -E -- s=opt_slim -slim=opt_slim
+
   local n
   if [[ -n "$1" ]]; then
     n=$1
@@ -258,15 +264,14 @@ finform-start() {
 
   tmux rename-window "f-$n [${VITE_PORT:-???}]"
 
-  # Build 3-pane layout: Claude (left), terminal + process-compose (right)
-  tmux split-window -h -c "$dir"
-  tmux split-window -v -c "$dir" -t 1
-
   # Pane 0: Claude (left)
-  # Pane 1: terminal (top-right)
-  # Pane 2: process-compose TUI (bottom-right)
-
-  tmux send-keys -t 2 "process-compose up" Enter
+  # Pane 1: terminal (right; top-right when not slim)
+  # Pane 2: process-compose TUI (bottom-right; omitted when slim)
+  tmux split-window -h -c "$dir"
+  if (( ! ${#opt_slim} )); then
+    tmux split-window -v -c "$dir" -t 1
+    tmux send-keys -t 2 "process-compose up" Enter
+  fi
 
   # Return to left pane and offer resume if orphan
   tmux select-pane -t 0

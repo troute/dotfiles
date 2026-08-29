@@ -1,50 +1,54 @@
 ---
 name: explore
-description: Gain thorough context on a topic or area of the codebase.
+description: Build deep, implementation-ready context in a specific area of the codebase.
 ---
 
 # Explore
 
-## Linear Ticket Mode
+Build working context in the area named by `$ARGUMENTS` so that implementing there afterward
+feels easy. This is for your own context, not a tutorial for the user. Don't implement anything.
 
-If `$ARGUMENTS` is "linear", "ticket", "next ticket", or otherwise suggests the user wants to pick
-up work from Linear rather than explore the codebase, follow this flow instead:
+**Linear ticket:** If `$ARGUMENTS` indicates a ticket ("linear", "ticket", "next ticket"), first
+fetch the top-priority unclaimed non-backlog ticket via Linear MCP, confirm it and mark it In
+Progress, then explore exactly as below using the ticket as the target.
 
-1. **Fetch non-backlogged tickets** — Use Linear MCP tools to get tickets that are not in the
-   backlog. Only these are in scope.
-2. **Filter to available work** — Only consider tickets that are not already in progress, completed,
-   cancelled, or otherwise claimed.
-4. **Sort by priority** — Urgent > High > Medium > Low > No Priority.
-5. **Pick a ticket** — From the highest available priority group, choose one arbitrarily.
-6. **Present the ticket** — Show the ticket identifier, title, priority, and description. Ask the
-   user if they want to proceed with this ticket.
-7. **On confirmation** — Mark the ticket as "In Progress" in Linear via MCP, then explore the
-   relevant area of the codebase using the ticket's context (follow the codebase exploration flow
-   below).
+## What a good exploration does
 
-If no qualifying tickets are found, report that clearly.
+You're building the context you'd want in hand the moment you start implementing. Aim for:
 
----
+- **Trace one full vertical slice** end to end (endpoint → operation → model → migration, or
+  component → hook → React Query → generated client → endpoint) rather than skimming many files.
+  One traced path teaches the pattern; a broad skim doesn't.
+- **Find the exemplar to copy.** Name the existing feature most structurally analogous to the
+  coming work — "build it like X" is the most valuable thing you can surface.
+- **Extract the local conventions**, not the global style guide: how this area handles errors,
+  threads sessions/DI, validates, names, and tests — what makes a diff blend in.
+- **Pin the insertion points.** Where does new code physically land — which file gets the
+  endpoint, which module the operation, where the migration, where it's wired/registered.
+- **Surface invariants and gotchas** — the non-obvious constraints that bite: ordering
+  dependencies, shared state, things that must stay in sync (e.g. backend model ↔ generated
+  client), sign/idempotency rules.
+- **Read recent history** (`git log --oneline -20 -- <paths>`) for half-built or adjacent work,
+  defer docs, and patterns to follow or collide with.
+- **Note the dead ends** — deprecated or deceptively-relevant paths, so implementation doesn't
+  wander into them.
 
-## Codebase Exploration
+Cover the stack as relevant: backend (models, operations, domain, endpoints), frontend
+(components, hooks, React Query, generated types), database (tables, migrations). Do the reading
+yourself so the context lives here; fan out to parallel Task agents only for genuinely large
+sweeps, and demand dense returns.
 
-Investigate `$ARGUMENTS` across the full stack and report back concisely. Do not implement anything.
+A bad exploration lists files and narrates what the code does. A good one tells you where to put
+your hands and what to imitate.
 
-### What to Cover
+## Output
 
-- **Backend**: Models, operations, domain logic, and API endpoints related to the topic. Note
-  layer responsibilities — what lives in `api/` vs `domain/` vs `db/operations/`.
-- **Frontend**: Components, hooks, React Query usage, and relevant generated types. Check for
-  Storybook stories if applicable.
-- **Database**: Relevant tables, relationships, and any migration history worth noting.
-- **Recent changes**: Use `git log --oneline -20 -- <relevant paths>` to understand what has
-  changed recently in this area. Note any in-progress or partially landed work.
-- **Key interfaces**: Focus on the boundaries between modules — function signatures, API contracts,
-  component props. These are what matter most for understanding how things fit together.
+Dense. Exactly three parts, nothing else:
 
-### Output
+1. **One paragraph of prose** — how to implement in this area: the seam where changes go, the
+   conventions to follow, the exemplar to mirror, and the one or two gotchas that matter.
+2. **Key files** — bulleted, one per line: `path/to/file — 5–10 words on its relevant role`.
+3. **Key symbols** — bulleted, one per line: classes, endpoints, interfaces, functions, and
+   (frontend-heavy areas) components that carry weight: `SymbolName — kind; 5–10 words on why it's load-bearing`.
 
-Produce a structured summary. Keep it concise — I want to understand the lay of the land, not read
-every line of code. Call out anything surprising, inconsistent, or potentially problematic.
-
-Use parallel Task agents where it makes sense (e.g., frontend and backend exploration simultaneously).
+No headings inside these parts, no per-item paragraphs, no code walls.

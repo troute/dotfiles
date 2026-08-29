@@ -55,16 +55,13 @@ alias g=git
 alias ll='eza -a --long --icons=auto'
 alias c=claude
 
-# Dotfiles management (bare git repo)
-alias d='dotfiles'
-alias dotfiles='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-
 # Editor
 export EDITOR=nvim
 export VISUAL=nvim
 
 # Project-specific configs (safe to re-source)
 source ~/.zsh/claude.zsh
+source ~/.zsh/dotfiles.zsh
 source ~/.zsh/finform.zsh
 
 # One-time setup (guarded to avoid accumulation on re-source)

@@ -14,15 +14,22 @@ allowed-tools:
 
 Examine the full change set against the target branch and verify that it is finalized for submission (and by extension, for merge). The target branch defaults to `staging`; the preprocessed inputs below are generated against staging. If an argument was provided, the argument is: `$ARGUMENTS`. If it looks like a branch name (e.g., `main`), use it as the target branch and **ignore the preprocessed inputs** — run equivalent git commands yourself against that branch. Otherwise, treat it as additional context or instructions for the review. Ensure you examine the entirety of the diff and carefully diligence any relevant files you are unfamiliar with.
 
-### 1. Check Freshness
+### 1. Sync With the Target Branch
 
-Check whether the branch is behind the target branch (see Inputs below for the commit count and log of upstream changes). If the branch is behind, report the upstream commits and recommend that the user rebase before continuing. **Do not proceed with the remaining steps until the user confirms the branch is up to date or explicitly says to proceed anyway.**
+Check whether the branch is behind the target branch (see Inputs below for the commit count and log of upstream changes). If it is behind, bring it up to date yourself — do not stop to ask permission first:
+
+- **On the target branch itself** (e.g. `staging`, `main`): `git pull`. If the working tree is dirty, stash → pull → pop.
+- **On a feature branch**: rebase onto the target (`git rebase origin/<target>`), stashing first if the working tree is dirty.
+
+Resolve conflicts yourself when they are **mechanical** — import ordering, adjacent-line edits, formatting, lockfiles, renames or moved code, trivially reconcilable signature changes. Pause and ask me only when a conflict is **conceptual**: upstream changed an interface, invariant, or approach such that this change set's design needs rethinking rather than re-application. When you do pause, first return the tree to a clean, recoverable state (`git rebase --abort`, restore any stash) and report precisely where you stopped and what the conflict implies.
+
+The Inputs below are generated before this step runs, so any sync makes them stale. After syncing, re-run the equivalent git commands (change set diff, upstream log, recent commits on the target) and use the post-sync output for the remaining steps.
 
 ### 2. Review the Change Set
 
 The diff (see Inputs below) shows changes on this branch relative to the target branch. Pay special attention to:
 
-> Completeness. Have we done everything we set out to do? If there is a Linear ticket associated with the current working branch (look for fin-{n} branch prefixing), are we sure that we have met all of the stated and implied requirements (given our best understanding of the state of discussion in the ticket and its comments)? If there are any planning documents associated with this change, have we met their requirements (unless no longer relevant due to changes in our understanding)?
+> Completeness. Have we done everything we set out to do? If there is a Linear ticket associated with the current working branch (look for an `eng-{n}` segment in the branch name), are we sure that we have met all of the stated and implied requirements (given our best understanding of the state of discussion in the ticket and its comments)? If there are any planning documents associated with this change, have we met their requirements (unless no longer relevant due to changes in our understanding)?
 
 > Simplicity. A maximally simple codebase that still delivers the required behavior is one of my chief priorities — treat this as a first-class concern, not a polish item. Be aggressive in considering how the implementation could be simpler, including changes that go beyond the strict bounds of the requested work when they would result in a net simpler codebase. Proactively look for dead code, unnecessary abstractions, redundant indirection, and overgeneralized interfaces, and remove them.
 
@@ -42,11 +49,17 @@ The diff (see Inputs below) shows changes on this branch relative to the target 
 
 > Documentation. Check whether this change set necessitates edits to project documentation (CLAUDE.md, README.md, or other top-level docs). These docs are intentionally parsimonious broad overviews — any edit must clearly earn its place, and must not leave the document feeling unbalanced (e.g., one section dramatically more detailed than its siblings). Prefer the smallest change that captures what's genuinely necessary; if the change set introduces no broadly-relevant new patterns, commands, or behaviors, no edit is needed.
 
+> Memory hygiene. If you keep a file-based memory, check whether this change set obsoletes or graduates any of it: a note tracking work that just shipped, a deferred item now done, or a fact that now belongs in committed docs (CLAUDE.md/README) or a tracked Linear issue. Retire, collapse, or promote such memories in this pass — memory that outlives the state it described rots and misleads. The test: would this landed change make a memory false? If so, fix or drop it now. Keep the `MEMORY.md` index a lean router (one short line per memory).
+
 > Leaving the codebase better than you found it. Is there any adjacent cruft that you can conveniently improve alongside the core change set?
+
+**Act on what you find rather than merely reporting it.** Make the improvements yourself in this pass, using your best judgment — do not ask me whether to address something you have identified. Lean toward making the change: a problem you could have fixed but only listed is one I have to re-litigate later. Defer only when a change is genuinely out of scope, conflicts with a decision we made deliberately, or implies a design change large enough to warrant discussion — and say so explicitly in the report with a one-line rationale.
 
 ### 3. Run the Code Review Skill
 
 By default, invoke the **Code Review** skill (via the Skill tool) and fold its findings and edits into finalization. Skip it only if a code review was already performed and no material changes have been made since. Note your decision briefly in the output.
+
+**Act on the findings rather than merely reporting them.** Fix anything with genuine merit in this pass, using your best judgment — do not ask me whether to address a finding. Lean toward making the change: a finding you could have acted on but only listed is one I have to re-litigate later. Defer only when a finding is genuinely out of scope, conflicts with a decision we made deliberately, or implies a design change large enough to warrant discussion. Call out each deferred finding explicitly in the report with a one-line rationale — never leave one silently unaddressed.
 
 ### 4. Run Pre-Commit
 
@@ -59,16 +72,16 @@ Run E2E tests headlessly with `cd e2e && npx playwright test`. **Never** use the
 ### 6. Output
 
 Wait until all steps above are complete, then produce a single consolidated report covering:
-- Freshness status
-- Review findings (organized by the categories above — only mention categories where you have something to say)
-- Code Review results (or a brief note if skipped)
+- Sync status (what was pulled or rebased, and any conflicts resolved)
+- Review findings (organized by the categories above — only mention categories where you have something to say), noting what you changed and what you deliberately left alone
+- Code Review results: what was found and fixed, plus any findings deliberately deferred and why (or a brief note if skipped)
 - Pre-commit results
 - E2E test results
 - A conventional commit message, in the style matching that of the most recent commits on the target branch (see Inputs below for recent commit log)
 
 Brief incremental notes during execution are fine, but the final report should be self-contained.
 
-Do NOT attempt to issue the commit yourself. I will handle all git state management.
+Do NOT commit the change set yourself — I will handle the commit. The step 1 sync is the only git state change you should make on your own.
 
 Please ultrathink about this. Careful work here will vastly shorten the time to approval for this change set.
 
