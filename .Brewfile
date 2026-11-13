@@ -37,14 +37,12 @@ cask "orbstack"
 # Process orchestration
 brew "f1bonacc1/tap/process-compose"
 
-# Postgres and tooling
-brew "postgresql@17", restart_service: :changed, link: true
+# Postgres clients (workspaces run their own servers in containers)
+brew "postgresql@18", link: true
 brew "pgcli"
-brew "pgvector"
 
 # Workflow / deploy / cloud
-brew "temporal", restart_service: :changed
-brew "railway"
+brew "temporal"
 
 # PAM module so Touch ID for sudo works inside tmux
 # (After install, add to /etc/pam.d/sudo_local — see README.md step 5)
