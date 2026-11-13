@@ -20,6 +20,10 @@
       "Bash(git status:*)",
       "Bash(git branch:*)",
       "Bash(git fsck:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
     ]
   }
 }
