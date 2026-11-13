@@ -20,64 +20,6 @@ finform-link-memory() {
   ln -s "$shared" "$memdir"
 }
 
-# Create new finform directory with full setup
-finform-init() {
-  local n=${1:?Usage: finform-init <1-12>}
-  [[ "$n" =~ ^([1-9]|1[0-2])$ ]] || { echo "Slot must be 1-12"; return 1; }
-
-  local dir=~/dev/finform-worktrees/$n
-  local src=~/dev/finform-worktrees/1
-  local uvicorn_port=$((7999 + n))
-  local vite_port=$((5172 + n))
-  local storybook_port=$((6005 + n))
-  local hocuspocus_port=$((4170 + n))
-  local unoserver_port=$((2002 + n))
-  local s3mock_port=$((9089 + n))
-  local temporal_task_queue_prefix="finform_${n}"
-  local db_name="finform_${n}"
-
-  [[ -d "$dir" ]] && { echo "$dir exists"; return 1; }
-
-  git clone git@github.com:troute/finform.git "$dir" &&
-  cd "$dir" &&
-  createdb "$db_name" 2>/dev/null
-  finform-link-memory "$dir"
-  cat > .envrc <<EOF
-source_up
-source .venv/bin/activate
-export FINFORM_SLOT=$n
-export UVICORN_PORT=$uvicorn_port
-export VITE_PORT=$vite_port
-export STORYBOOK_PORT=$storybook_port
-export PC_PORT_NUM=$((8079 + n))
-export PC_SOCKET_PATH="/tmp/process-compose-finform-${n}.sock"
-export DATABASE_URL=postgresql://mtroute@localhost/$db_name
-export HOCUSPOCUS_PORT=$hocuspocus_port
-export UNOSERVER_PORT=$unoserver_port
-export S3MOCK_PORT=$s3mock_port
-export AWS_ENDPOINT_URL=http://localhost:\${S3MOCK_PORT}
-export AWS_S3_BUCKET_NAME=finform-\${FINFORM_SLOT}
-export AWS_ACCESS_KEY_ID=test
-export AWS_SECRET_ACCESS_KEY=test
-export AWS_DEFAULT_REGION=us-east-1
-EOF
-  if [[ -f "$src/.env.local" && "$n" -ne 1 ]]; then
-    sed -e "s/localhost:5173/localhost:$vite_port/g" \
-        -e "s/localhost:8000/localhost:$uvicorn_port/g" \
-        -e "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://mtroute@localhost/$db_name|" \
-        -e "s/^TEMPORAL_TASK_QUEUE_PREFIX=.*/TEMPORAL_TASK_QUEUE_PREFIX=$temporal_task_queue_prefix/" \
-        -e "s/^UNOSERVER_PORT=.*/UNOSERVER_PORT=$unoserver_port/" \
-        "$src/.env.local" > .env.local
-  fi
-  uv sync &&
-  alembic upgrade head &&
-  (cd frontend && npm install) &&
-  direnv allow &&
-  pre-commit install &&
-  pre-commit install --hook-type pre-push
-}
-alias finit='finform-init'
-
 # Prefetch shared state for worktree checks.
 # Sets listening, claude_cwds, tmux_windows in caller scope.
 _finform-prefetch() {
@@ -90,11 +32,13 @@ _finform-prefetch() {
   [[ -n "$pids" ]] && claude_cwds=$(lsof -p "$pids" -a -d cwd -Fn 2>/dev/null | grep '^n' | sed 's/^n//')
   tmux_windows=""
   if [[ -n "$TMUX" ]]; then
-    tmux_windows=$(tmux list-windows -F '#{window_name}' 2>/dev/null)
+    tmux_windows=$(tmux list-windows -a -F '#{window_name}' 2>/dev/null)
   fi
 }
 
-# Check if worktree N is idle (clean, on staging, no active sessions/services).
+# Check if worktree N is idle (clean, on staging, no active window/services).
+# A `wt-N` tmux window is the sole ownership signal: sessions running in a
+# differently-named window are read-only visitors and don't reserve the slot.
 # Caller must declare listening, claude_cwds, tmux_windows and call _finform-prefetch.
 _finform-is-idle() {
   local n=$1
@@ -103,8 +47,7 @@ _finform-is-idle() {
   local branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
   [[ "$branch" != "staging" ]] && return 1
   [[ -n "$(git -C "$dir" status --porcelain 2>/dev/null)" ]] && return 1
-  echo "$tmux_windows" | grep -q "^f-${n}\b" && return 1
-  echo "$claude_cwds" | grep -q "^${dir}$" && return 1
+  echo "$tmux_windows" | grep -q "^wt-${n}\b" && return 1
   local uvicorn_port=$((7999 + n)) vite_port=$((5172 + n)) storybook_port=$((6005 + n))
   echo "$listening" | grep -q "\.${uvicorn_port} " && return 1
   echo "$listening" | grep -q "\.${vite_port} " && return 1
@@ -168,7 +111,7 @@ _finform-prune-scan() {
 
     has_tmux=false; tmux_name=""
     if [[ -n "$tmux_windows" ]]; then
-      tmux_name=$(echo "$tmux_windows" | grep "^f-${n}\b" | head -1)
+      tmux_name=$(echo "$tmux_windows" | grep "^wt-${n}\b" | head -1)
       [[ -n "$tmux_name" ]] && has_tmux=true
     fi
     has_claude=false
@@ -204,80 +147,44 @@ _finform-prune-scan() {
 # With -s/--slim, process-compose is not booted and the layout is 2-pane:
 # Claude (0) on the left, terminal (1) on the right.
 #
-# Usage: finform-start [-s|--slim] [1-12]  (no arg = first clean worktree on staging)
+# Usage: finform-start [-s|--slim] [name]
+#   no name: an idle workspace on staging (finform workspace claim), created if none
+#   a name:  that workspace, created if it doesn't exist
 finform-start() {
   local -a opt_slim
   zparseopts -D -E -- s=opt_slim -slim=opt_slim
+  [[ -n "$TMUX" ]] || { echo "Not in a tmux session"; return 1; }
 
-  local n
-  if [[ -n "$1" ]]; then
-    n=$1
-    [[ "$n" =~ ^([1-9]|1[0-2])$ ]] || { echo "Slot must be 1-12"; return 1; }
+  local dir
+  if [[ -z "$1" ]]; then
+    dir=$(finform workspace claim) || return 1
+  elif [[ -d "$HOME/dev/finform/$1" ]]; then
+    dir="$HOME/dev/finform/$1"
   else
-    local listening claude_cwds tmux_windows
-    _finform-prefetch
-    for candidate in {1..12}; do
-      if _finform-is-idle $candidate; then
-        n=$candidate
-        break
-      fi
-    done
-    if [[ -z "$n" ]]; then
-      echo "No idle worktree found"
-      return 1
-    fi
-    echo "Auto-selected worktree $n"
+    dir=$(finform workspace new --name "$1") || return 1
   fi
+  local name=${dir:t}
+  echo "Workspace $name"
 
-  local dir="$HOME/dev/finform-worktrees/$n"
-
-  if [[ ! -d "$dir" ]]; then
-    echo "Directory $dir does not exist"
-    return 1
-  fi
-
-  if [[ -z "$TMUX" ]]; then
-    echo "Not in a tmux session"
-    return 1
-  fi
-
+  finform-link-memory "$dir"
   cd "$dir"
-
-  # Detect orphan state before creating the window
-  local is_orphan=false
-  local changes=$(git -C "$dir" status --porcelain 2>/dev/null)
-  if [[ -n "$changes" ]]; then
-    local tmux_windows=$(tmux list-windows -F '#{window_name}' 2>/dev/null)
-    if ! echo "$tmux_windows" | grep -q "^f-${n}\b"; then
-      is_orphan=true
-    fi
-  fi
-
-  # Pull latest before starting services/claude, but only when it's safe to do
-  # so unattended: clean worktree on staging. A dirty or non-staging worktree is
-  # left untouched to avoid conflicts (the orphan-resume path handles dirty state).
-  local branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
-  if [[ -z "$changes" && "$branch" == "staging" ]]; then
-    echo "Pulling latest on staging..."
-    git -C "$dir" pull --ff-only || echo "Pull failed; continuing with current checkout."
-  fi
-
-  tmux rename-window "f-$n [${VITE_PORT:-???}]"
+  tmux rename-window "$name"
 
   # Pane 0: Claude (left)
   # Pane 1: terminal (right; top-right when not slim)
-  # Pane 2: process-compose TUI (bottom-right; omitted when slim)
+  # Pane 2: the workspace's services (bottom-right; omitted when slim)
   tmux split-window -h -c "$dir"
   if (( ! ${#opt_slim} )); then
     tmux split-window -v -c "$dir" -t 1
-    tmux send-keys -t 2 "process-compose up" Enter
+    tmux send-keys -t 2 "finform workspace up" Enter
   fi
-
-  # Return to left pane and offer resume if orphan
   tmux select-pane -t 0
-  if $is_orphan; then
-    echo "Worktree $n has uncommitted changes with no active session."
-    read -q "?Resume previous Claude session? [y/N] " && local claude_flags="-c"
+
+  # Uncommitted work means a session was here before; offer to carry on with it.
+  local claude_flags
+  if [[ -n "$(git -C "$dir" status --porcelain 2>/dev/null)" ]]; then
+    echo "Workspace $name has uncommitted changes."
+    read -q "?Resume its previous Claude session? [y/N] " && claude_flags="-c"
     echo
   fi
   eval "$(direnv export zsh)"
@@ -325,7 +232,7 @@ finform-status() {
     has_tmux=false
     has_claude=false
     if [[ -n "$tmux_windows" ]]; then
-      window_line=$(echo "$tmux_windows" | grep "^f-${n}\b")
+      window_line=$(echo "$tmux_windows" | grep "^wt-${n}\b")
       [[ -n "$window_line" ]] && has_tmux=true
     fi
     if [[ -n "$claude_cwds" ]]; then
@@ -419,7 +326,7 @@ finform-kill() {
   #    self-teardown this terminates the calling shell.
   local win
   win=$(tmux list-windows -a -F '#{window_id} #{window_name}' 2>/dev/null \
-        | awk -v n="$n" '$2 ~ "^f-"n"($|[^0-9])" {print $1; exit}')
+        | awk -v n="$n" '$2 ~ "^wt-"n"($|[^0-9])" {print $1; exit}')
   if [[ -n "$win" ]]; then
     echo "Closing tmux window $win (slot $n)..."
     tmux kill-window -t "$win"
@@ -484,8 +391,9 @@ finform-pull() {
 alias fpull='finform-pull'
 alias fp='finform-pull'
 
-# Open finform in browser
-# Usage: finform-open [-S|--staging] [-P|--production] [-s|--storybook] [-t|--temporal] [1-12]
+# Open Finform in the browser: a workspace (by name, or the current one), its Storybook or Temporal UI, its database,
+# or staging or production.
+# Usage: finform-open [-S|--staging] [-P|--production] [-s|--storybook] [-t|--temporal] [-p|--postgres] [name]
 finform-open() {
   local -a opt_staging opt_production opt_storybook opt_postgres opt_temporal
   zparseopts -D -E -- \
@@ -495,45 +403,21 @@ finform-open() {
     p=opt_postgres -postgres=opt_postgres \
     t=opt_temporal -temporal=opt_temporal
 
-  if (( ${#opt_production} )); then
-    open "https://app.finform.ai"
-    return
-  fi
+  (( ${#opt_production} )) && { open "https://app.finform.ai"; return; }
+  (( ${#opt_staging} )) && { open "https://staging.app.finform.ai"; return; }
 
-  if (( ${#opt_staging} )); then
-    open "https://staging.app.finform.ai"
-    return
-  fi
-
-  # Resolve slot number from argument or environment
-  local n
-  if [[ -n "$1" ]]; then
-    n=$1
-    [[ "$n" =~ ^([1-9]|1[0-2])$ ]] || { echo "Slot must be 1-12"; return 1; }
-  elif [[ -n "$VITE_PORT" ]]; then
-    n=$((VITE_PORT - 5172))
-  else
-    echo "Usage: finform-open [-S|--staging] [-P|--production] [-s|--storybook] [-t|--temporal] [1-12]"
-    return 1
-  fi
-
-  if (( ${#opt_storybook} )); then
-    open "http://localhost:$((6005 + n))"
-    return
-  fi
-
+  local name=${1:-$WORKSPACE_NAME}
+  [[ -n "$name" ]] || { echo "Usage: finform-open [-S|-P|-s|-t|-p] [name] (or run inside a workspace)"; return 1; }
   if (( ${#opt_postgres} )); then
-    pgcli "finform_${n}" || psql "finform_${n}"
-    return
+    local url="postgresql://postgres@postgres.finform-$name.orb.local/finform"
+    pgcli "$url" || psql "$url"
+  elif (( ${#opt_storybook} )); then
+    open "https://storybook.$name.finform.local"
+  elif (( ${#opt_temporal} )); then
+    open "https://temporal.$name.finform.local"
+  else
+    open "https://$name.finform.local"
   fi
-
-  if (( ${#opt_temporal} )); then
-    local queue="finform_${n}"
-    open "http://localhost:8233/namespaces/default/workflows?query=%60TaskQueue%60%3D%22${queue}%22"
-    return
-  fi
-
-  open "http://localhost:$((5172 + n))"
 }
 alias fopen='finform-open'
 alias fo='finform-open'

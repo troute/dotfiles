@@ -32,7 +32,7 @@ brew "uv"
 
 # Docker
 brew "docker-completion"
-cask "docker-desktop"
+cask "orbstack"
 
 # Process orchestration
 brew "f1bonacc1/tap/process-compose"
@@ -51,7 +51,7 @@ brew "railway"
 brew "pam-reattach"
 
 # CLIs distributed as casks
-cask "claude-code"
+cask "claude-code@latest"
 cask "ngrok"
 
 # GUI applications
