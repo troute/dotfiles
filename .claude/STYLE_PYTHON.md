@@ -4,9 +4,9 @@ Supplements the general principles in CLAUDE.md. **Ruff owns formatting** (line 
 
 ## Style
 - Type-hint every signature, class attribute, and non-obvious local.
-- Absolute imports only (star imports only in `__init__.py`, for package re-export).
+- Absolute imports only; no star imports.
 - Prefer single quotes; use double only to avoid escaping.
-- Naming: `snake_case` / `PascalCase` / `UPPER_SNAKE_CASE`; group related constants in a `str, Enum` class; single leading `_` for private (avoid `__` name-mangling unless you specifically want it).
+- Naming: `snake_case` / `PascalCase` / `UPPER_SNAKE_CASE`; a closed set is a `StrEnum` (or a named `Literal`), never a bare `str`; single leading `_` for module-private only — a name imported elsewhere has none (avoid `__` name-mangling unless you specifically want it).
 - Include units in names — `timeout_ms`, `file_size_bytes`, `duration_seconds`.
 - f-strings for interpolation; 120-char lines.
 
@@ -14,7 +14,8 @@ Supplements the general principles in CLAUDE.md. **Ruff owns formatting** (line 
 - EAFP over LBYL — `try/except`, not pre-checks.
 - Never mutable default args — default to `None` and initialize inside.
 - Context managers (`with`) for every resource (files, sessions, locks).
-- `X | Y` / `X | None` unions, not `Union`/`Optional`.
+- `X | Y` / `X | None` unions, not `Union`/`Optional`; PEP 695 generics (`def first[T](…)`), not `TypeVar`.
+- A frozen `@dataclass` for internal value types; Pydantic only at boundaries.
 - `async`/`await` for I/O; keep CPU-bound code synchronous.
 
 ## FastAPI / SQLModel / Pydantic

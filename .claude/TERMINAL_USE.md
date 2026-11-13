@@ -56,15 +56,17 @@ cd frontend && npm run generate-client
 
 ### Use conventional commit message format
 
-Use bracket-prefixed commit messages to categorize changes clearly.
+Use bracket-prefixed commit messages to categorize changes clearly: a lowercase title of at most 72 characters,
+with `[feat]` reserved for major features (most net-new work is `[fix]` or `[chore]`) and a `[fix]` title reading as a
+sentence that describes the problem.
 
 #### Do
 
 ```bash
-git commit -m '[feat] add new authentication endpoint'
-git commit -m '[fix] resolve database connection timeout'
+git commit -m '[feat] restrict monitored inboxes to access groups'   # major features only
+git commit -m '[fix] database connection times out under load'       # describes the problem
 git commit -m '[chore] update dependencies'
-git commit -m '[wip] partial implementation of reports feature'  # Development only
+git commit -m '[wip/fix] partial timeout fix'                         # development only; bare [wip] is fine too
 ```
 
 **Common commit sequences:**
@@ -80,7 +82,7 @@ git push
 ruff format .
 git add .
 git commit --amend --no-edit
-git push -f
+git push --force-with-lease   # never plain -f, and never to a shared default branch
 
 # Clean up commit history before push
 git rebase -i HEAD~3
@@ -92,6 +94,7 @@ git rebase -i HEAD~3
 git commit -m 'fixed stuff'
 git commit -m 'updates'
 git commit -m 'WIP'  # Use [wip] prefix instead
+git push -f          # Use --force-with-lease, which refuses to clobber commits you haven't seen
 ```
 
 Note: `[wip]` commits are development aids only and should never appear in main branches. Use interactive rebase to clean them up before merging.
@@ -222,7 +225,7 @@ Use `&&` to chain commands that should stop on failure.
 ```bash
 ruff check . && ruff format . && git add .
 alembic downgrade base && alembic upgrade head
-git add . && git commit -m '[feat] new feature' && git push
+git add . && git commit -m '[chore] update dependencies' && git push
 ```
 
 #### Don't
@@ -231,5 +234,74 @@ git add . && git commit -m '[feat] new feature' && git push
 # Don't use semicolons when you want to stop on errors
 ruff check . ; ruff format . ; git add .  # Continues even if ruff check fails
 ```
+
+---
+
+### Pipe to `tail`/`grep` for large, fast outputs only
+
+Use `tail`/`grep` sparingly for commands that run quickly but produce large outputs.
+Avoid using `tail`/`grep` for long-duration commands with periodic or uncertain outputs,
+as it prevents me from seeing progress and hides valuable signal after completion.
+
+#### Do
+
+```bash
+zsh verbose-but-fast.zsh | grep foobar
+zsh verbose-but-fast.zsh | tail -n 10
+```
+
+#### Don't
+
+```bash
+zsh slow.zsh | tail -n 10
+zsh emits-progress.zsh | tail -n 10
+zsh may-have-error-output.zsh | grep foobar
+```
+
+---
+
+### Never let a pipe decide a gate's verdict
+
+A pipeline's exit code is its last command's, so a failing test, build or migration piped through `tail` or `tee` reports success. When pass/fail matters, keep `pipefail` on and judge by the tool's own summary line.
+
+#### Do
+
+```bash
+set -o pipefail; npx playwright test --reporter=line 2>&1 | tail -40
+pre-commit run --all-files   # unpiped; read its own pass/fail lines
+```
+
+#### Don't
+
+```bash
+npx playwright test 2>&1 | tail -40      # exit 0 even when tests failed
+docker build . || echo "build done"      # masks the failure entirely
+```
+
+---
+
+### The shell is zsh on macOS
+
+zsh doesn't word-split an unquoted `$var` and aborts on a glob that matches nothing, and the BSD tools lack GNU idioms, so a few habits fail, sometimes silently.
+
+#### Do
+
+```bash
+grep -rn foo --include='*.py' .           # quote glob arguments
+for f in ${=FILES}; do …; done            # or loop over an array / in Python
+perl -pi -e 's/\bold\b/new/g' file        # word boundaries; `git grep -P` and `rg` also have \b
+perl -e 'alarm shift; exec @ARGV' 60 cmd  # macOS has no `timeout`
+```
+
+#### Don't
+
+```bash
+grep -rn foo --include=*.py .             # "no matches found", command never runs
+for f in $FILES; do …; done               # one iteration over the whole string
+sed -i '' 's/\bold\b/new/g' file          # BSD sed has no \b: silently replaces nothing
+timeout 60 cmd                            # command not found
+```
+
+Note: after a bulk rename, grep for the old name to confirm it's gone.
 
 ---
