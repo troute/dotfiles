@@ -4,8 +4,9 @@ description: Get the current branch up to date with a target branch.
 allowed-tools:
   - Bash(git *)
   - Bash(cd frontend && npm install *)
-  - Bash(uv sync)
+  - Bash(uv sync *)
   - Bash(alembic upgrade *)
+  - Bash(process-compose process *)
 ---
 
 # Rebase
@@ -31,13 +32,15 @@ If an argument is provided, the argument is: `$ARGUMENTS`. If it looks like a br
 
 6. **Sync dependencies.** If lockfiles changed during the rebase (`package-lock.json`, `uv.lock`,
    `yarn.lock`, `poetry.lock`, etc.), install the new dependencies. In finform, that means
-   `cd frontend && npm install && cd ..` for frontend changes and `uv sync` for backend changes.
+   `cd frontend && npm install && cd ..` for frontend changes and `uv sync --group pms` for
+   backend changes (a bare `uv sync` uninstalls the PMS exporter's Playwright).
    In other projects, use common sense based on the lockfile and project conventions.
 
 7. **Apply migrations.** If new Alembic migrations landed (`alembic/versions/` has new files),
    run `alembic upgrade head`. If the migration history has diverged (local branch created a
    migration that now conflicts with upstream), flag it for my review rather than attempting
-   to reconcile automatically.
+   to reconcile automatically. In finform, then restart the worker (and backend and frontend, if
+   running) with `process-compose process restart`, since the worker doesn't hot-reload.
 
 8. **Report.** Summarize what happened: how many commits were replayed, whether conflicts were
    resolved (and how), whether the stash popped cleanly, whether dependencies were synced, and
